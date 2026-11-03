@@ -39,7 +39,7 @@ export class ImageStudio {
             <div class="oi-field-pair"><label>Largura (px)<input class="oi-output-w" type="number" min="1" max="4096" value="1200"></label><label>Altura (px)<input class="oi-output-h" type="number" min="1" max="4096" value="800"></label></div>
             <div class="oi-ratio-note">Tamanho final: <b class="oi-output-size">1200 × 800 px</b></div><div class="oi-field-pair"><label>Formato<select class="oi-export-format"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WEBP</option></select></label><label>Qualidade<select class="oi-quality"><option value="65">65% · compacto</option><option value="85" selected>85% · equilibrado</option><option value="95">95% · máxima</option></select></label></div>
             <div class="oi-final-preview"><div class="oi-preview-top"><strong>Prévia do resultado final</strong><span class="oi-preview-resolution">—</span></div><div class="oi-preview-surface"><canvas class="oi-preview-canvas" aria-label="Prévia da imagem já recortada"></canvas></div></div><hr><h3>Posicionamento</h3><div class="oi-slider-label"><label for="oi-zoom">Zoom</label><span class="oi-zoom-value">100%</span></div>
-            <input class="oi-zoom" id="oi-zoom" type="range" min="100" max="400" step="1" value="100"><div class="oi-actions-row"><button class="oi-btn oi-btn-soft oi-rotate-left" title="Girar 90° à esquerda">↶ Girar</button><button class="oi-btn oi-btn-soft oi-rotate-right" title="Girar 90° à direita">↷ Girar</button><button class="oi-btn oi-btn-soft oi-flip" title="Espelhar">⇄ Espelhar</button></div>
+            <input class="oi-zoom" id="oi-zoom" type="range" min="100" max="400" step="1" value="100"><div class="oi-actions-row"><button class="oi-btn oi-btn-soft oi-rotate-left" title="Girar 90° à esquerda">↶ Girar</button><button class="oi-btn oi-btn-soft oi-rotate-right" title="Girar 90° à direita">↷ Girar</button><button class="oi-btn oi-btn-soft oi-flip" title="Espelhar na horizontal">⇄ Espelhar</button><button class="oi-btn oi-btn-soft oi-flip-v" title="Espelhar na vertical">⇅ Inverter</button></div><p class="oi-keys-note">Teclado: setas movem a imagem (Shift = 10×), + e − ampliam.</p>
             <hr><h3>Ajustes</h3>
             <div class="oi-slider-label"><label>Brilho</label><span class="oi-brightness-value">100%</span></div><input class="oi-brightness" type="range" min="0" max="200" value="100">
             <div class="oi-slider-label"><label>Contraste</label><span class="oi-contrast-value">100%</span></div><input class="oi-contrast" type="range" min="0" max="200" value="100">
@@ -171,6 +171,27 @@ export class ImageStudio {
     $('.oi-rotate-left').addEventListener('click', () => { s.angle = (s.angle + 270) % 360; s.dx = 0; s.dy = 0; this.markAdjusted(); this.render(); });
     $('.oi-rotate-right').addEventListener('click', () => { s.angle = (s.angle + 90) % 360; s.dx = 0; s.dy = 0; this.markAdjusted(); this.render(); });
     $('.oi-flip').addEventListener('click', () => { s.flipX *= -1; this.markAdjusted(); this.render(); });
+    $('.oi-flip-v').addEventListener('click', () => { s.flipY *= -1; this.markAdjusted(); this.render(); });
+    // Acessibilidade: enquadramento pelo teclado, sem depender do mouse.
+    s.stage.tabIndex = 0;
+    s.stage.addEventListener('keydown', (e) => {
+      if (!s.img || s.file?.type === 'image/gif') return;
+      const step = e.shiftKey ? 10 : 1;
+      const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+      if (moves[e.key]) {
+        e.preventDefault();
+        s.dx += moves[e.key][0];
+        s.dy += moves[e.key][1];
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        s.zoom = Math.min(4, s.zoom + 0.1);
+      } else if (e.key === '-') {
+        e.preventDefault();
+        s.zoom = Math.max(1, s.zoom - 0.1);
+      } else return;
+      this.markAdjusted();
+      this.render();
+    });
     $('.oi-reset').addEventListener('click', () => { s.zoom = 1; s.angle = 0; s.flipX = 1; s.flipY = 1; s.dx = 0; s.dy = 0; s.brightness = 100; s.contrast = 100; s.saturation = 100; s.filter = 'none'; this.markAdjusted(); this.render(); });
     $('.oi-apply').addEventListener('click', () => this.apply());
   }
@@ -277,7 +298,6 @@ export class ImageStudio {
     document.removeEventListener('keydown', s.onEsc);
     s.resize?.disconnect();
     s.overlay.remove();
-    if (s.locked && !s.allowUpscale && (img.naturalWidth < s.width || img.naturalHeight < s.height)) {URL.revokeObjectURL(url);this.alert(`A imagem deve ter no mínimo ${s.width} × ${s.height} px.`);return;}
     if (s.objectURL) URL.revokeObjectURL(s.objectURL);
     s.resolve(result);
   }

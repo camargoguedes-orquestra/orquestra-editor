@@ -56,6 +56,12 @@ O teste automático verifica a igualdade do HTML sanitizado ao serializar/reabri
 
 Nunca imprima HTML sem sanitização no backend de um sistema real. A sanitização do navegador serve para conforto de edição, mas não é fronteira de segurança: o endpoint demonstrativo aceita qualquer string HTML e apenas a armazena como JSON. Para exibir a outros usuários, aplique **sanitização no servidor** usando biblioteca confiável, permita somente tags/atributos necessários, autorize recursos e configure CSP. Consulte [Segurança](SEGURANCA.md).
 
-## Estratégia de migração
+## Migração da versão 2 para a 3
 
-Como o motor atual é baseado em `contenteditable`, recomenda-se salvar snapshots versionados de HTML e escrever testes de ida e volta antes de migrar a implementação do editor para ProseMirror/Tiptap. Em uma futura migração, certas tags não previstas no schema poderão ser removidas. Estabeleça uma matriz de elementos permitidos antes de convertê-los.
+A versão 3 usa um schema (Tiptap/ProseMirror). Ao abrir HTML salvo pela versão 2, `setHTML` converte automaticamente: `<font>` vira `<span style>`, listas com `<input type="checkbox">` viram listas de tarefas, `<div style="page-break-after:always">` vira quebra de página e `<img>` solto vira figura. Estilos de bloco seguros (entrelinha, recuo, cor, bordas e fundo de tabela) são preservados pelo atributo `blockStyle`. Elementos fora do schema (por exemplo `<section>` ou `<aside>`) mantêm o texto, mas perdem a tag.
+
+Recomendação: antes de migrar um banco grande, rode `editor.setHTML(antigo)` + `editor.getHTML()` em uma amostra e compare o resultado.
+
+## Comentários e versões
+
+`save()` envia `{ id, html, comments }`. Guarde `comments` junto com o HTML: o HTML só marca os trechos (`span[data-comment-id]`), e o texto das conversas está no array. O backend de exemplo copia a versão anterior para `versions/<id>/` a cada salvamento.

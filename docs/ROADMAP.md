@@ -1,41 +1,33 @@
-# Roadmap de evolução
+# Roadmap
 
-## 2.0 — disponível na base atual
+## 3.0 — disponível
 
-- Enquadramento com dimensões obrigatórias por configuração e validação no backend.
-- Prévia final do corte sincronizada com a exportação.
-- HTML como retorno do editor e carregamento via `setHTML`/`load`.
-- Toolbar ampliada com componentes e menus adicionais.
-- Componentes independentes e documentação de integração.
+- Motor Tiptap/ProseMirror no lugar de `contenteditable` + `execCommand`, com histórico de desfazer transacional.
+- Comentários, controle de alterações, histórico de versões, campos de mesclagem, menções e comandos com "/".
+- Importação e exportação DOCX (com comentários e alterações nativos do Word) e Markdown.
+- Tabelas completas, código com realce, fórmulas KaTeX, sumário, seções recolhíveis, arrastar blocos.
+- Imagens com alça de redimensionamento, legenda, alinhamento e reedição no Estúdio.
+- Licença MIT e dependências somente permissivas.
 
-## 2.1 — estabilidade e ergonomia
+## 3.1 — próximos passos
 
-- Testes unitários de geometria de Canvas e mais navegadores.
-- Atalhos/acessibilidade e suporte avançado a toque em dispositivos móveis.
-- Extensão para criar botões/plugins customizados sem editar o core.
-- Biblioteca de imagens e histórico de uploads.
-- Editor contextual de imagens (legenda, link e alinhamento direto no documento).
-- Adaptadores de upload intercambiáveis e seleção de perfis de imagem por campo no editor.
-- Melhorias de acessibilidade e internacionalização.
+- Edição restrita: modelos em que só os campos marcados podem ser editados.
+- Controle de alterações também para formatação, quebras de parágrafo e tabelas.
+- Biblioteca de imagens já enviadas (gerenciador de arquivos) sobre o `upload.php`.
+- Recorte livre com alças no Estúdio (modo sem perfil) e pinça para zoom em telas de toque.
+- Tradução da interface (estrutura de rótulos já existe pela opção `labels`).
+- Testes em Firefox e Safari no CI.
 
-## 3.0 — novo motor de edição
+## 3.2 — documentos empresariais
 
-- Migrar de `execCommand` para ProseMirror/Tiptap (schema, nodes, marks, transações).
-- Edição estruturada, operações de tabelas robustas, atalhos avançados e undo/redo transacional.
-- Testes de ida e volta HTML com schema documentado e migração de documentos legados.
-- Sistema extensível de plugins e schema customizável.
-
-## 3.1 — documentos empresariais
-
-- Cabeçalho/rodapé, paginação e múltiplas folhas reais.
-- Modelos com variáveis, tabelas dinâmicas, campos bloqueados e histórico de revisão.
-- Importação/exportação de DOCX com fidelidade mensurável.
-- PDF no servidor com templates de impressão versionados.
+- Paginação real com cabeçalho, rodapé e numeração de páginas.
+- Notas de rodapé.
+- PDF gerado no servidor com modelos de impressão.
 
 ## 4.0 — colaboração
 
-- Comentários, sugestões e controle de alterações.
-- Edição simultânea com CRDT ou OT, presença de usuários e resolução de conflitos.
-- Auditoria e versionamento por usuário/tenant.
+- Coedição em tempo real com Yjs e servidor WebSocket próprio (sem serviço pago).
+- Presença de usuários e cursores remotos.
+- Comentários e sugestões sincronizados entre usuários.
 
-> Roadmap não implica que os itens já estejam disponíveis. A ordem está sujeita a testes, licença e requisitos dos sistemas consumidores.
+> A ordem pode mudar conforme a comunidade contribuir. Sugestões são bem-vindas nas issues.
