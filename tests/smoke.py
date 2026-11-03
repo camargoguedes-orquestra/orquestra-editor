@@ -1,0 +1,224 @@
+"""Testes executados em Chromium sobre about:blank (navegação local é bloqueada pelo sandbox).
+O Javascript é injetado como bundle temporário gerado em memória; os arquivos de entrega
+mantêm os módulos ES separados. Upload/save PHP testados com requests HTTP reais no loopback.
+"""
+from playwright.sync_api import sync_playwright
+from PIL import Image, ImageDraw
+from pathlib import Path
+from io import BytesIO
+import urllib.request, json, re, uuid
+root=Path(__file__).resolve().parents[1]
+photo=root/'tests'/'sample.png';gif=root/'tests'/'sample.gif'
+im=Image.new('RGB',(1280,720),(34,107,183));d=ImageDraw.Draw(im)
+d.rectangle((0,0,640,720),fill=(215,91,60));d.ellipse((600,130,1100,600),fill=(243,202,74));d.text((30,30),'IMAGEM DE TESTE - ENQUADRAMENTO',fill='white');im.save(photo)
+a=Image.new('RGB',(120,90),'red');b=Image.new('RGB',(120,90),'blue');a.save(gif,save_all=True,append_images=[b],duration=[120,140],loop=0)
+
+# Backend PHP real: multipart + salvamento + leitura
+def send_multipart(path, name):
+    boundary='----test'+uuid.uuid4().hex
+    mime='image/gif' if path.suffix=='.gif' else 'image/png'
+    body=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\nContent-Type: {mime}\r\n\r\n').encode()+path.read_bytes()+(f'\r\n--{boundary}--\r\n').encode()
+    req=urllib.request.Request('http://127.0.0.1:8765/backend/upload.php',data=body,method='POST',headers={'Content-Type':'multipart/form-data; boundary='+boundary})
+    with urllib.request.urlopen(req,timeout=10) as resp:
+        assert resp.status==201
+        return json.load(resp)
+
+up=send_multipart(photo,'sample.png')
+assert up['width']==1280 and up['height']==720
+with urllib.request.urlopen('http://127.0.0.1:8765'+up['url']) as resp: assert Image.open(BytesIO(resp.read())).size == (1280,720)
+upgif=send_multipart(gif,'sample.gif')
+with urllib.request.urlopen('http://127.0.0.1:8765'+upgif['url']) as resp:assert Image.open(BytesIO(resp.read())).n_frames == 2
+print('OK PHP: upload PNG, GIF animado, leitura de mídia')
+# O servidor impõe o perfil independentemente do navegador.
+fixed=root/'tests'/'generated-banner.webp'
+Image.new('RGB',(1200,630),(68,114,185)).save(fixed,format='WEBP',quality=85)
+def send_profile(path,profile):
+    boundary='----profile'+uuid.uuid4().hex
+    ext=path.suffix.lstrip('.')
+    mime={'webp':'image/webp','png':'image/png','gif':'image/gif'}[ext]
+    body=(f'--{boundary}\r\nContent-Disposition: form-data; name="profile"\r\n\r\n{profile}\r\n'
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="sample.{ext}"\r\nContent-Type: {mime}\r\n\r\n').encode()+path.read_bytes()+(f'\r\n--{boundary}--\r\n').encode()
+    req=urllib.request.Request('http://127.0.0.1:8765/backend/upload.php',data=body,method='POST',headers={'Content-Type':'multipart/form-data; boundary='+boundary})
+    try:
+        with urllib.request.urlopen(req,timeout=10) as resp: return resp.status,json.load(resp)
+    except urllib.error.HTTPError as error: return error.code,json.load(error)
+status,data=send_profile(photo,'banner-site')
+assert status==422 and '1200' in data['error'],(status,data)
+status,data=send_profile(fixed,'banner-site')
+assert status==201 and data['width']==1200 and data['height']==630 and data['mime']=='image/webp',(status,data)
+print('OK PHP: rejeita dimensões incorretas e aceita 1200x630 WEBP no perfil fixo')
+
+
+payload=json.dumps({'id':'test-123','html':'<h1>Teste de persistência</h1>'}).encode()
+req=urllib.request.Request('http://127.0.0.1:8765/backend/save-document.php',data=payload,method='POST',headers={'Content-Type':'application/json'})
+with urllib.request.urlopen(req) as r: assert json.load(r)['ok']
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123') as r:assert json.load(r)['html']=='<h1>Teste de persistência</h1>'
+print('OK PHP: salvar e recuperar documento')
+
+html=(root/'index.html').read_text().replace('<script type="module" src="./src/app.js"></script>','')
+styles=(root/'src/styles.css').read_text()
+styles+='\n'+re.search(r'<style>(.*?)</style>',html,flags=re.DOTALL).group(1)
+js='\n'.join((root/'src'/p).read_text() for p in ['image-studio.js','editor.js','app.js'])
+js=js.replace("import { ImageStudio } from './image-studio.js';",'')
+js=js.replace("import { OrquestraEditor } from './editor.js';",'')
+js=js.replace("import { OrquestraImageUploader } from './image-studio.js';",'')
+js=js.replace('export class ','class ').replace('export function ','function ')
+
+with sync_playwright() as p:
+    browser=p.chromium.launch(**({'executable_path':'/usr/bin/chromium'} if Path('/usr/bin/chromium').exists() else {}),headless=True,args=['--no-sandbox'])
+    page=browser.new_page(viewport={'width':1440,'height':980},accept_downloads=True)
+    errs=[];page.on('pageerror',lambda error: errs.append(str(error)))
+    page.set_content(html)
+    page.add_style_tag(content=styles)
+    page.add_script_tag(content=js)
+    assert page.locator('.oe-content h1').count()==1, errs
+    print('OK interface',page.title())
+    page.screenshot(path=str(root/'tests'/'editor-desktop.png'),full_page=True)
+    page.evaluate('''() => {
+      window.testUploads = []; window.testStoredHTML = null;
+      window.fetch = async (url,options={}) => {
+        if(options.body instanceof FormData) {
+          const blob=options.body.get('file'); const bitmap=await createImageBitmap(blob);
+          window.testUploads.push({name:blob.name,size:blob.size,type:blob.type,width:bitmap.width,height:bitmap.height,blob});
+          bitmap.close();
+          return new Response(JSON.stringify({ok:true,url:'/backend/uploads/simulated-upload.png'}),{status:201,headers:{'content-type':'application/json'}});
+        }
+        if(options.method === 'POST') {
+          window.testStoredHTML=JSON.parse(options.body).html;
+          return new Response(JSON.stringify({ok:true,id:'documento-demo'}),{status:200,headers:{'content-type':'application/json'}});
+        }
+        return new Response(JSON.stringify({id:'documento-demo',html:window.testStoredHTML}),{status:200,headers:{'content-type':'application/json'}});
+      };
+    }''')
+
+    # Formatação e texto
+    page.evaluate('''() => { const p=document.querySelector('.oe-content p');const r=document.createRange();r.selectNodeContents(p);const s=getSelection();s.removeAllRanges();s.addRange(r); }''')
+    page.locator('.oe-tool[data-action="bold"]').click()
+    assert page.locator('.oe-content strong,.oe-content b').count()>0
+    print('OK formatação negrito')
+
+    page.locator('.oe-tool[data-action="emoji"]').click()
+    assert page.locator('.oe-picker-grid button').count()>50
+    page.locator('.oe-picker-grid button').first.click()
+    assert '😀' in page.locator('.oe-content').inner_text()
+    print('OK emoji')
+
+    page.locator('.oe-tool[data-action="table"]').click()
+    page.locator('.oe-dialog input[name="rows"]').fill('3')
+    page.locator('.oe-dialog input[name="cols"]').fill('4')
+    page.locator('.oe-dialog button[type="submit"]').click()
+    assert page.locator('.oe-content table').count()==1
+    assert page.locator('.oe-content table tr').count()==3
+    assert page.locator('.oe-content table tr').first.locator('th').count()==4
+    print('OK tabela')
+
+    # Segurança
+    result=page.evaluate('''() => {window.OrquestraDemo.editor.setHTML('<p onclick="alert(1)">OK</p><script>alert(1)</script><img src="javascript:alert(1)" onerror="alert(1)">');return window.OrquestraDemo.editor.getHTML()}''')
+    assert '<script' not in result and 'onclick' not in result and 'onerror' not in result and 'javascript:' not in result and 'OK' in result, result
+    print('OK sanitização HTML')
+
+    page.locator('.oe-top-primary[data-action="save"]').click()
+    page.get_by_text('Documento gravado no servidor').wait_for()
+    print('OK comando de salvar')
+
+    # Image Studio no editor
+    page.locator('.oe-file').set_input_files(str(photo))
+    page.locator('.oi-studio').wait_for()
+    page.locator('.oi-stage-photo').wait_for(state='visible')
+    page.locator('[data-ratio="1:1"]').click()
+    page.locator('.oi-output-w').fill('400');page.locator('.oi-output-w').dispatch_event('change')
+    assert page.locator('.oi-output-h').input_value()=='400'
+    page.locator('.oi-zoom').fill('150');page.locator('.oi-zoom').dispatch_event('input')
+    stage=page.locator('.oi-stage').bounding_box()
+    page.mouse.move(stage['x']+stage['width']/2,stage['y']+stage['height']/2)
+    page.mouse.down();page.mouse.move(stage['x']+stage['width']/2+30,stage['y']+stage['height']/2+10);page.mouse.up()
+    page.screenshot(path=str(root/'tests'/'studio-crop.png'))
+    page.locator('.oi-apply').click()
+    page.locator('.oi-studio').wait_for(state='detached')
+    page.wait_for_function("window.testUploads.length===1")
+    result=page.evaluate('''() => {const {blob,...r}=testUploads[0];return r;}''')
+    assert result['width']==400 and result['height']==400 and result['type']=='image/webp',result
+    assert page.locator('.oe-content img').count()==1
+    print('OK recorte com dimensões reais 400 x 400 + fluxo upload',result['size'])
+
+    # Uploader com dimensão administrada pelo desenvolvedor
+    page.locator('#tab-images').click()
+    assert page.locator('.oi-upload-config').is_hidden()
+    page.locator('.oi-up-file').set_input_files(str(photo))
+    page.locator('.oi-studio').wait_for()
+    assert page.locator('.oi-output-w').input_value()=='1200'
+    assert page.locator('.oi-output-h').input_value()=='630'
+    assert page.locator('.oi-output-w').is_disabled()
+    assert page.locator('.oi-output-h').is_disabled()
+    assert page.locator('.oi-ratio-list').is_hidden()
+    assert page.locator('.oi-apply').is_disabled()
+    assert page.locator('.oi-preview-canvas').evaluate('(e)=>e.width===360 && e.height===189')
+    page.locator('.oi-zoom').fill('125')
+    page.locator('.oi-zoom').dispatch_event('input')
+    assert page.locator('.oi-apply').is_enabled()
+    page.screenshot(path=str(root/'tests'/'uploader-standalone.png'),full_page=True)
+    page.locator('.oi-apply').click()
+    page.locator('.oi-upload-result').wait_for(state='visible')
+    result=page.evaluate('''() => {const {blob,...r}=testUploads[1];return r;}''')
+    assert result['width']==1200 and result['height']==630 and result['type']=='image/webp',result
+    assert page.locator('.oi-upload-result img').count()==1
+    print('OK perfil fixo: dimensões 1200x630, WEBP, campo travado, confirmação obrigatória')
+
+    # GIF não pode ser usado em slot que exige recorte e formato fixos
+    page.locator('.oi-up-file').set_input_files(str(gif))
+    page.locator('.oi-studio').wait_for()
+    assert 'não é permitido' in page.locator('.oi-status').inner_text()
+    assert page.locator('.oi-apply').is_disabled()
+    page.locator('.oi-cancel').click()
+    print('OK GIF recusado quando o slot exige recorte fixo')
+
+    # HTML mantém estilo, tabelas e imagem em serializar e reabrir.
+    page.locator('#tab-editor').click()
+    html_input='<h2 style="text-align:center;color:#123456">Título</h2><p style="line-height:1.5;color:#dc2626"><strong>Conteúdo</strong> em vermelho.</p><table style="border-collapse:collapse;width:95%"><tbody><tr><td style="border:1px solid #c5d1df;padding:8px">Célula</td></tr></tbody></table><p><img src="/backend/uploads/validada.webp" width="120" alt="Exemplo"></p>'
+    stored=page.evaluate('''(html)=>{const e=OrquestraDemo.editor;e.setHTML(html);return e.getHTML()}''',html_input)
+    assert 'text-align:center' in stored and 'line-height:1.5' in stored and 'border-collapse:collapse' in stored
+    assert '/backend/uploads/validada.webp' in stored
+    page.evaluate('''()=>OrquestraDemo.editor.setHTML('<p>Conteúdo temporário</p>')''')
+    reloaded=page.evaluate('''html=>{OrquestraDemo.editor.setHTML(html);return OrquestraDemo.editor.getHTML()}''',stored)
+    assert reloaded == stored,(reloaded,stored)
+    print('OK HTML roundtrip: cores, entrelinha, células de tabela, imagem e títulos preservados')
+
+    # Roundtrip de API de documentos: salva, altera no browser, busca e reabre.
+    assert page.evaluate('''async()=>await OrquestraDemo.editor.save()''')
+    page.evaluate('''()=>OrquestraDemo.editor.setHTML('<p>Texto temporário</p>')''')
+    page.evaluate("()=>OrquestraDemo.editor.options.saveUrl='https://example.test/backend/save-document.php'")
+    assert page.evaluate('''async()=>await OrquestraDemo.editor.load()''')
+    assert page.evaluate('''()=>OrquestraDemo.editor.getHTML()''')==stored
+    print('OK roundtrip pela API save/load com formatação')
+
+    # Ferramentas acrescentadas: lista de tarefas com estado gravável em HTML.
+    page.locator('.oe-tool[data-action="checklist"]').click()
+    box=page.locator('.oe-content input[type="checkbox"]').first
+    box.check(force=True)
+    assert 'checked=""' in page.evaluate('''()=>OrquestraDemo.editor.getHTML()''')
+    print('OK checklist com estado checked persistente')
+
+    # GIF válido permanece animado quando não existe corte rígido.
+    page.locator('.oe-file').set_input_files(str(gif))
+    page.locator('.oi-studio').wait_for()
+    page.locator('.oi-gif-note').wait_for(state='visible')
+    page.locator('.oi-apply').click()
+    page.wait_for_function('window.testUploads.length===3')
+    result=page.evaluate('''() => {const {blob,...r}=testUploads[2];return r;}''')
+    assert result['type']=='image/gif' and result['size']==gif.stat().st_size
+    print('OK GIF animado preservado em modo de imagem livre')
+
+    # URLs temporárias não podem ser salvas como imagens definitivas.
+    page.evaluate('''()=>OrquestraDemo.editor.setHTML('<p><img src="blob:https://example.test/fake" alt="temporario"></p>')''')
+    assert page.evaluate('''()=>OrquestraDemo.editor.hasTemporaryImages()''')
+    assert page.evaluate('''()=>OrquestraDemo.editor.save()''') is False
+    print('OK rejeição de salvamento de imagens blob temporárias')
+
+    page.evaluate('''()=>OrquestraDemo.editor.setHTML('<h2 style=\"color:#155e9e\">Orquestra Editor</h2><p>Documento de exemplo com <strong>formatação</strong> e <em>ênfase</em>.</p><p>Visualização responsiva no celular.</p>')''')
+    page.set_viewport_size({'width':390,'height':844})
+    page.locator('#tab-editor').click()
+    page.screenshot(path=str(root/'tests'/'editor-mobile.png'),full_page=True)
+    print('OK viewport móvel')
+    assert not errs,'Erros JS: '+repr(errs)
+    print('ALL TESTS PASSED')
+    browser.close()

@@ -1,0 +1,16 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orquestra — salvar e carregar HTML</title><link rel="stylesheet" href="../src/styles.css"><style>body{font:15px Arial,sans-serif;background:#f1f5fc;color:#233750;margin:0;padding:24px}main{max-width:1200px;margin:auto}h1{font-size:27px}.output{margin-top:18px;background:#fff;border:1px solid #d7e1ee;padding:12px;border-radius:9px}textarea{width:100%;min-height:160px;box-sizing:border-box;font:12px/1.5 monospace}button{margin:4px;padding:8px 14px;border-radius:7px;border:1px solid #b6c8dd;background:#fff;cursor:pointer}</style></head><body>
+<main><h1>Editor HTML: exportar e reabrir sem perder estilos</h1><p>Use os botões abaixo para inspecionar a string HTML, salvar no backend PHP e recuperar o documento. O exemplo não usa banco; leia a documentação para MySQL.</p>
+<div id="editor"></div><div class="output"><button id="html">Exibir HTML</button><button id="set">Restaurar HTML exibido</button><button id="save">Salvar</button><button id="load">Reabrir do servidor</button><textarea id="code" aria-label="Conteúdo HTML"></textarea><p id="message" role="status"></p></div></main>
+<script type="module">
+import {OrquestraEditor} from '../src/editor.js';
+const editor=new OrquestraEditor('#editor',{
+  id:'exemplo-html',uploadUrl:'../backend/upload.php',saveUrl:'../backend/save-document.php',
+  initialHTML:'<h1 style="text-align:center;color:#175b9c">Documento demonstrativo</h1><p style="line-height:1.5"><strong>Formatação HTML</strong> preservada entre edições.</p>'
+});
+const $=s=>document.querySelector(s),msg=t=>$('#message').textContent=t;
+$('#html').onclick=()=>{$('#code').value=editor.getHTML();msg('Fragmento HTML gerado.');};
+$('#set').onclick=()=>{editor.setHTML($('#code').value);msg('HTML restaurado na edição.');};
+$('#save').onclick=async()=>msg((await editor.save())?'Documento salvo.':'Falha ao salvar. Confira o PHP.');
+$('#load').onclick=async()=>msg((await editor.load())?'Documento reaberto.':'Falha ao recuperar.');
+window.editor=editor;
+</script></body></html>

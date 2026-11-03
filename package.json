@@ -1,0 +1,20 @@
+{
+  "name": "@orquestra/editor",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Editor WYSIWYG e editor de imagens com recorte obrigatório e dimensões configuráveis.",
+  "exports": {
+    ".": "./src/index.js",
+    "./editor": "./src/editor.js",
+    "./image-studio": "./src/image-studio.js",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "lint:syntax": "node --check src/editor.js && node --check src/image-studio.js && node --check src/app.js && node --check src/index.js",
+    "dev": "php -S 127.0.0.1:8080 -t .",
+    "test": "python tests/smoke.py"
+  },
+  "engines": {"node": ">=18"},
+  "files": ["src", "backend", "docs", "examples", "README.md", "LICENSE.md"]
+}

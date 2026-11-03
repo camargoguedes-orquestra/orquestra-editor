@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1c4fad">
+  <title>Orquestra Editor — Editor web e Estúdio de imagens</title>
+  <link rel="stylesheet" href="./src/styles.css">
+  <style>
+  .demo-layout{max-width:1520px;margin:0 auto;padding:25px 30px 70px}.demo-hero{margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;gap:22px}.demo-kicker{font-size:11px;font-weight:800;letter-spacing:2.3px;color:#246bd5}.demo-hero h1{font-size:31px;letter-spacing:-1.2px;margin:6px 0 8px}.demo-hero p{margin:0;color:#72849a;font-size:13px;line-height:1.7}.demo-chip{border:1px solid #cbdcf1;background:#eaf2ff;border-radius:30px;padding:10px 13px;color:#366ab2;font-size:11px;white-space:nowrap}.demo-tabs{display:flex;align-items:center;gap:8px;margin-bottom:20px;border-bottom:1px solid #dce5ef;padding-bottom:10px}.demo-tab{border:0;border-radius:8px;background:transparent;color:#627994;padding:10px 17px;font-size:13px;font-weight:700}.demo-tab.active{background:#e4efff;color:#135fc6}.demo-panel[hidden]{display:none}.demo-foot{margin-top:20px;color:#788aa1;font-size:12px;line-height:1.8}.demo-api{background:#13243c;color:#d9e7f7;padding:18px 23px;border-radius:12px;overflow-x:auto;font-size:12px;line-height:1.8}.demo-info{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:17px 0}.demo-info>div{background:#fff;border:1px solid #e0e9f4;border-radius:12px;padding:17px}.demo-info b{font-size:12px}.demo-info p{color:#71859e;font-size:12px;line-height:1.7}.demo-api code{font:12px/1.8 Consolas,monospace}.demo-test-image{margin-top:10px;color:#57789f;background:#e7f0fe;border:0;border-radius:7px;padding:8px 12px}.demo-test-image:hover{background:#dbeafa}@media(max-width:760px){.demo-layout{padding:18px 8px}.demo-hero{padding:0 10px;flex-wrap:wrap}.demo-hero h1{font-size:24px}.demo-info{grid-template-columns:1fr}.demo-chip{display:none}}
+  </style>
+</head>
+<body>
+  <div class="demo-layout">
+    <section class="demo-hero">
+      <div><div class="demo-kicker">ORQUESTRA SISTEMAS / COMPONENTES</div><h1>Editor avançado de conteúdo</h1><p>Crie documentos, formate textos e trate imagens com enquadramento visual preciso — tudo em um único ambiente.</p></div>
+      <span class="demo-chip">● Componentes reutilizáveis · Componentes JS e PHP</span>
+    </section>
+    <div class="demo-tabs" role="tablist">
+      <button id="tab-editor" class="demo-tab active" aria-selected="true" role="tab">✎ Editor de texto</button>
+      <button id="tab-images" class="demo-tab" aria-selected="false" role="tab">▧ Upload + edição de imagens</button>
+      <button id="tab-integrate" class="demo-tab" aria-selected="false" role="tab">⌘ Integração</button>
+    </div>
+    <section id="panel-editor" class="demo-panel"><div id="orquestra-editor"></div><p class="demo-foot">Atenção: imagens armazenadas em URLs temporárias não persistem após recarregar a página. Execute a demonstração com PHP para habilitar o endpoint de upload.</p></section>
+    <section id="panel-images" class="demo-panel" hidden><div id="orquestra-image-uploader"></div><div class="demo-info"><div><b>01 · Corte visível</b><p>O excedente é escurecido e permanece visível ao redor do enquadramento.</p></div><div><b>02 · Zoom e ajustes</b><p>Amplie, reposicione, gire, espelhe, ajuste filtros e defina dimensões finais.</p></div><div><b>03 · Independente</b><p>Utilize o uploader em formulários PHP, cadastros, produtos e perfis sem carregar o editor.</p></div></div></section>
+    <section id="panel-integrate" class="demo-panel" hidden><h2>Integração JavaScript</h2><p>Importe apenas os componentes necessários:</p><pre class="demo-api"><code>import { OrquestraEditor } from './src/editor.js';
+import { OrquestraImageUploader } from './src/image-studio.js';
+
+const editor = new OrquestraEditor('#editor', {
+  id: 'documento-123',
+  uploadUrl: '/backend/upload.php',
+  saveUrl: '/backend/save-document.php',
+  autosave: true,
+  onChange: html => console.log('Atualizado:', html),
+  image: { width: 1200, height: 800, locked: false }
+});
+
+const uploader = new OrquestraImageUploader({
+  element: '#upload', width: 1200, height: 630,
+  locked: true, requireAdjustment: true, allowGIF: false,
+  format: 'image/webp', profile: 'banner-site',
+  uploadUrl: '/backend/upload.php',
+  onUpload: result => console.log(result.url)
+});</code></pre><p class="demo-foot">A demonstração do uploader utiliza dimensões fixas 1200×630. Configure o perfil de validação no PHP para impor essas dimensões no servidor. O retorno de upload é JSON com <code>{"url":"/backend/uploads/arquivo.png"}</code>. Leia o README para regras de autenticação e produção.</p></section>
+  </div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

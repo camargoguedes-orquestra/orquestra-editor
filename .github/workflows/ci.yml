@@ -1,0 +1,33 @@
+name: Validate Orquestra Editor
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Check JS and PHP syntax
+        run: |
+          npm run lint:syntax
+          php -l backend/common.php
+          php -l backend/upload.php
+          php -l backend/save-document.php
+      - name: Install tests and browser
+        run: |
+          pip install -r tests/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Run HTTP server and browser checks
+        run: |
+          php -S 127.0.0.1:8765 -t . > /tmp/orquestra-php.log 2>&1 &
+          sleep 2
+          python tests/smoke.py

@@ -1,0 +1,14 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orquestra — upload com recorte obrigatório</title><link rel="stylesheet" href="../src/styles.css"><style>body{background:#f2f6fc;font:15px Arial;color:#233750;max-width:1000px;margin:35px auto;padding:12px}h1{font-size:26px}code{background:#e8edf6;border-radius:4px;padding:3px 5px}</style></head><body>
+<h1>Upload de banner com recorte fixo</h1><p>O desenvolvedor exige <strong>1200 × 630 pixels, WEBP</strong>. O administrador precisa mover, ampliar, girar ou ajustar a imagem antes de confirmar. O servidor também valida o perfil.</p>
+<div id="banner"></div>
+<script type="module">
+import {OrquestraImageUploader} from '../src/image-studio.js';
+const uploader=new OrquestraImageUploader({
+  element:'#banner', title:'Banner do site', width:1200,height:630,
+  locked:true,requireAdjustment:true,allowGIF:false,format:'image/webp',lockFormat:true,quality:85,
+  profile:'banner-site',uploadUrl:'../backend/upload.php',
+  onUpload:({url,width,height})=>console.info('Upload concluído',url,width,height)
+});
+window.uploader=uploader;
+</script>
+</body></html>
