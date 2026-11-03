@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Camargo Felis Guedes e colaboradores do Orquestra Editor
+Copyright (c) 2026 Camargo Guedes <camargoguedes@gmail.com> e colaboradores do Orquestra Editor
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

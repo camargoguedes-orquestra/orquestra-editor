@@ -150,6 +150,6 @@ Cobrem o backend PHP real (upload, perfis, versões), o roundtrip de HTML, o Est
 
 ---
 
-**Coordenação do projeto**
-Camargo Felis Guedes
+**Autor e coordenação do projeto**
+Camargo Guedes — [camargoguedes@gmail.com](mailto:camargoguedes@gmail.com)
 CRC/ES 22.562/O

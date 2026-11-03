@@ -14,7 +14,7 @@ orq_authorize();
  */
 const ORQ_MAX_VERSIONS = 50;
 const ORQ_ID_PATTERN = '/^[a-zA-Z0-9_.-]{1,90}$/D';
-const ORQ_VERSION_PATTERN = '/^\d{8}T\d{6}Z-[a-f0-9]{6}$/D';
+const ORQ_VERSION_PATTERN = '/^\d{8}T\d{6}(\d{3})?Z-[a-f0-9]{6}$/D'; // milissegundos opcionais
 
 $method = $_SERVER['REQUEST_METHOD'] ?? '';
 $configuredDir = getenv('ORQUESTRA_DATA_DIR');
@@ -91,7 +91,8 @@ if ($method === 'POST') {
         if (!is_dir($vdir) && !@mkdir($vdir, 0700, true) && !is_dir($vdir)) {
             orq_response(500, ['error' => 'Falha na pasta de versões.']);
         }
-        $version = gmdate('Ymd\THis\Z') . '-' . bin2hex(random_bytes(3));
+        // Milissegundos no nome mantêm a ordem mesmo com vários salvamentos no mesmo segundo.
+        $version = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Ymd\THisv\Z') . '-' . bin2hex(random_bytes(3));
         @copy($file, $vdir . '/' . $version . '.json');
         $old = glob($vdir . '/*.json') ?: [];
         sort($old);

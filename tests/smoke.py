@@ -55,14 +55,18 @@ with urllib.request.urlopen(req) as r: assert json.load(r)['ok']
 with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123') as r:assert json.load(r)['html']=='<h1>Teste de persistência</h1>'
 print('OK PHP: salvar e recuperar documento')
 
-# Histórico de versões: um segundo salvamento guarda o anterior.
-payload=json.dumps({'id':'test-123','html':'<h1>Versão 2</h1>','comments':[{'id':'c-1','author':'Ana','text':'Ok','replies':[]}]}).encode()
+# Histórico de versões: um segundo salvamento guarda o anterior (id novo a cada execução).
+doc_id='test-'+uuid.uuid4().hex[:8]
+first=json.dumps({'id':doc_id,'html':'<h1>Teste de persistência</h1>'}).encode()
+req=urllib.request.Request('http://127.0.0.1:8765/backend/save-document.php',data=first,method='POST',headers={'Content-Type':'application/json'})
+with urllib.request.urlopen(req) as r: assert json.load(r)['ok']
+payload=json.dumps({'id':doc_id,'html':'<h1>Versão 2</h1>','comments':[{'id':'c-1','author':'Ana','text':'Ok','replies':[]}]}).encode()
 req=urllib.request.Request('http://127.0.0.1:8765/backend/save-document.php',data=payload,method='POST',headers={'Content-Type':'application/json'})
 with urllib.request.urlopen(req) as r: assert json.load(r)['ok']
-with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123&versions=1') as r: versions=json.load(r)['versions']
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id='+doc_id+'&versions=1') as r: versions=json.load(r)['versions']
 assert len(versions)>=1,versions
-with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123&version='+versions[0]['version']) as r: assert json.load(r)['html']=='<h1>Teste de persistência</h1>'
-with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123') as r: cur=json.load(r)
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id='+doc_id+'&version='+versions[0]['version']) as r: assert json.load(r)['html']=='<h1>Teste de persistência</h1>'
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id='+doc_id) as r: cur=json.load(r)
 assert cur['html']=='<h1>Versão 2</h1>' and cur['comments'][0]['author']=='Ana'
 print('OK PHP: histórico de versões e comentários persistidos')
 

@@ -1,4 +1,4 @@
-/* ORQUESTRA EDITOR — UI profissional / 100% autônoma */
+/* ORQUESTRA EDITOR — Camargo Guedes <camargoguedes@gmail.com> — licença MIT */
 :root{--oe-primary:#2468db;--oe-primary-dark:#1c4fad;--oe-ink:#1c2e49;--oe-text:#3c4d64;--oe-subtle:#75849a;--oe-border:#dfe6f0;--oe-bg:#f2f6fc;--oe-soft:#f7f9fd;--oe-shadow:0 12px 38px rgba(36,55,83,.10)}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#f3f7fc;color:var(--oe-ink)}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.5}[hidden]{display:none!important}
 .oe-root{position:relative;overflow:hidden;border:1px solid #dbe3ef;border-radius:17px;background:white;box-shadow:var(--oe-shadow);color:var(--oe-ink);font-size:13px}

@@ -4,6 +4,7 @@
   "private": false,
   "type": "module",
   "description": "Editor WYSIWYG livre (MIT) com estúdio de imagens, recorte obrigatório, comentários, controle de alterações e exportação para Word.",
+  "author": "Camargo Guedes <camargoguedes@gmail.com>",
   "exports": {
     ".": "./dist/orquestra-editor.js",
     "./src": "./src/index.js",
