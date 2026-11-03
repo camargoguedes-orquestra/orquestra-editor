@@ -11,5 +11,9 @@ A análise compara funcionalidades e padrões de experiência, não incorpora c�
 7. **Jodit Editor — site e documentação**: https://xdsoft.net/jodit/ e https://xdsoft.net/jodit/docs/
 8. **Tiptap — comandos HTML e API**: https://tiptap.dev/docs/editor/api/commands/content/set-content
 9. **ProseMirror — documentação**: https://prosemirror.net/docs/
+10. **CKEditor 5 — licença e chave GPL**: https://ckeditor.com/docs/ckeditor5/latest/support/licensing/license-key-and-activation.html
+11. **TinyMCE — chave de licença e plugins premium**: https://www.tiny.cloud/docs/tinymce/latest/license-key
+12. **Jodit PRO — recursos pagos**: https://xdsoft.net/jodit/pro
+13. **Tiptap — extensões**: https://tiptap.dev/docs/editor/extensions/overview
 
 Revisão de documentação realizada em novembro de 2026. Recursos dos produtos de referência variam por plano, licença e versão. Para incorporar pacotes de terceiros, valide suas licenças antes de redistribuir.

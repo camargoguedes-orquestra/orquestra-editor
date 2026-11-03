@@ -16,6 +16,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
       - name: Check JS and PHP syntax
         run: |
           npm run lint:syntax

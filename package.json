@@ -1,20 +1,85 @@
 {
   "name": "@orquestra/editor",
-  "version": "2.0.0",
-  "private": true,
+  "version": "3.0.0",
+  "private": false,
   "type": "module",
-  "description": "Editor WYSIWYG e editor de imagens com recorte obrigatório e dimensões configuráveis.",
+  "description": "Editor WYSIWYG livre (MIT) com estúdio de imagens, recorte obrigatório, comentários, controle de alterações e exportação para Word.",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./dist/orquestra-editor.js",
+    "./src": "./src/index.js",
     "./editor": "./src/editor.js",
     "./image-studio": "./src/image-studio.js",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./dist/orquestra-editor.css"
   },
   "scripts": {
-    "lint:syntax": "node --check src/editor.js && node --check src/image-studio.js && node --check src/app.js && node --check src/index.js",
-    "dev": "php -S 127.0.0.1:8080 -t .",
+    "build": "node scripts/build.mjs",
+    "lint:syntax": "node --check src/editor.js && node --check src/image-studio.js && node --check src/app.js && node --check src/index.js && node --check scripts/build.mjs",
+    "dev": "npm run build && php -S 127.0.0.1:8080 -t .",
     "test": "python tests/smoke.py"
   },
-  "engines": {"node": ">=18"},
-  "files": ["src", "backend", "docs", "examples", "README.md", "LICENSE.md"]
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "src",
+    "backend",
+    "docs",
+    "examples",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.32.2",
+    "@tiptap/extension-bubble-menu": "^3.32.2",
+    "@tiptap/extension-code-block-lowlight": "^3.32.2",
+    "@tiptap/extension-details": "^3.32.2",
+    "@tiptap/extension-drag-handle": "^3.32.2",
+    "@tiptap/extension-emoji": "^3.32.2",
+    "@tiptap/extension-file-handler": "^3.32.2",
+    "@tiptap/extension-floating-menu": "^3.32.2",
+    "@tiptap/extension-highlight": "^3.32.2",
+    "@tiptap/extension-image": "^3.32.2",
+    "@tiptap/extension-invisible-characters": "^3.32.2",
+    "@tiptap/extension-list": "^3.32.2",
+    "@tiptap/extension-mathematics": "^3.32.2",
+    "@tiptap/extension-mention": "^3.32.2",
+    "@tiptap/extension-subscript": "^3.32.2",
+    "@tiptap/extension-superscript": "^3.32.2",
+    "@tiptap/extension-table": "^3.32.2",
+    "@tiptap/extension-table-of-contents": "^3.32.2",
+    "@tiptap/extension-text-align": "^3.32.2",
+    "@tiptap/extension-text-style": "^3.32.2",
+    "@tiptap/extension-typography": "^3.32.2",
+    "@tiptap/extension-unique-id": "^3.32.2",
+    "@tiptap/extension-youtube": "^3.32.2",
+    "@tiptap/extensions": "^3.32.2",
+    "@tiptap/markdown": "^3.32.2",
+    "@tiptap/pm": "^3.32.2",
+    "@tiptap/starter-kit": "^3.32.2",
+    "@tiptap/suggestion": "^3.32.2",
+    "docx": "^9.15.1",
+    "katex": "^0.18.10",
+    "lowlight": "^3.3.0",
+    "lucide": "^1.67.0",
+    "mammoth": "^1.13.0"
+  },
+  "license": "MIT",
+  "main": "./dist/orquestra-editor.js",
+  "module": "./dist/orquestra-editor.js",
+  "keywords": [
+    "editor",
+    "wysiwyg",
+    "rich-text",
+    "tiptap",
+    "prosemirror",
+    "image-cropper",
+    "track-changes",
+    "comments",
+    "docx",
+    "pt-br"
+  ]
 }

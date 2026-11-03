@@ -1,145 +1,155 @@
-# Orquestra Editor 2.0
+# Orquestra Editor 3
 
-**Editor web WYSIWYG + estúdio de imagens independente, com recorte obrigatório e perfis de tamanho administrados pelo desenvolvedor.**
+**Editor web WYSIWYG livre e gratuito (MIT) + estúdio de imagens com recorte obrigatório e perfis de tamanho administrados pelo desenvolvedor.**
 
-> **Status:** versão funcional de referência, sob evolução. Repositório inicialmente **privado**. Não é uma cópia ou implementação completa do CKEditor 5, TinyMCE ou Jodit. O motor usa `contenteditable`/`execCommand` (legado); consulte [Arquitetura](docs/ARQUITETURA.md) e [Roadmap](docs/ROADMAP.md) antes de aplicações com requisitos elevados de fidelidade documental.
+Construído sobre [Tiptap](https://tiptap.dev)/ProseMirror, traz sem custo recursos que em outros editores ficam na versão paga: comentários, controle de alterações, histórico de versões, importação e exportação para Word, campos de mesclagem, tabelas completas e fórmulas.
 
 ![Orquestra Editor](docs/assets/editor.png)
 
 ![Estúdio de imagens com prévia do corte](docs/assets/image-studio.png)
 
-## Dois componentes
+## Por que existe
 
-| Componente | Responsabilidade |
-|---|---|
-| `OrquestraEditor` | Editor de conteúdo HTML, formatação, tabelas, imagens, links, emojis, GIFs, vídeos, código-fonte HTML, modelos, preview, salvamento e reabertura |
-| `OrquestraImageUploader` | Upload independente, prévia do corte, dimensões fixas por parâmetro, zoom, enquadramento, filtros, exportação e envio ao servidor |
-| `ImageStudio` | Editor de imagem usado internamente pelos outros componentes ou diretamente em formulários |
+CKEditor 5 e TinyMCE são GPL ou pagos, e seus recursos de revisão, Word e edição de imagem só vêm com licença comercial. O Jodit é MIT, mas também reserva vários recursos para a versão PRO. O Orquestra Editor reúne o que esses editores oferecem, com tudo liberado sob MIT, e acrescenta o que nenhum deles tem: recorte de imagem com dimensões travadas pelo desenvolvedor e conferidas no servidor.
 
-Sem dependências JavaScript obrigatórias e sem build para executar a demonstração. Backend demonstrativo em **PHP 8.2+**. Navegador moderno com ES Modules, Canvas 2D, ResizeObserver e Blob.
+A comparação recurso a recurso está em [MATRIZ_FUNCIONAL.md](MATRIZ_FUNCIONAL.md).
 
-## Experimente em menos de um minuto
+## Experimente em um minuto
 
 ```bash
 php -S 127.0.0.1:8080 -t .
 ```
 
-Acesse `http://127.0.0.1:8080/`. O PHP de exemplo permite requisições **somente do loopback** quando não houver token configurado.
+Abra `http://127.0.0.1:8080/`. O pacote pronto já está em `dist/`, então a demonstração roda sem Node. O PHP de exemplo só aceita requisições do próprio computador quando não há token configurado.
 
-## Exemplos executáveis
+Para alterar o código-fonte:
 
-- [Upload fixo com enquadramento obrigatório](examples/uploader-fixo.html)
-- [Editor HTML: salvar, exportar e reabrir](examples/editor-html.html)
+```bash
+npm ci
+npm run build      # gera dist/orquestra-editor.js e dist/orquestra-editor.css
+```
 
-Execute esses exemplos pelo mesmo servidor PHP local.
+## Componentes
 
-## 1. Editor HTML
+| Componente | Responsabilidade |
+|---|---|
+| `OrquestraEditor` | Editor de documentos: formatação, tabelas, imagens, revisão, importação/exportação, salvamento e versões |
+| `OrquestraImageUploader` | Campo de upload independente, com recorte obrigatório e dimensões fixas |
+| `ImageStudio` | Estúdio de imagem usado pelos dois acima ou direto em formulários |
+
+## 1. Editor
 
 ```html
-<link rel="stylesheet" href="/orquestra/src/styles.css">
+<link rel="stylesheet" href="/orquestra/dist/orquestra-editor.css">
 <div id="editor"></div>
 <script type="module">
-  import { OrquestraEditor } from '/orquestra/src/editor.js';
+  import { OrquestraEditor } from '/orquestra/dist/orquestra-editor.js';
+
   const editor = new OrquestraEditor('#editor', {
-    id: 'contrato-2026-001',
-    autosave: true,
-    initialHTML: '<h1>Contrato</h1><p>Texto inicial.</p>',
+    id: 'ata-2026-11',
     uploadUrl: '/orquestra/backend/upload.php',
     saveUrl: '/orquestra/backend/save-document.php',
-    onChange: html => console.log('Alteração em HTML', html),
-    onSave: html => console.log('HTML persistido', html)
+    user: { name: 'Ana (síndica)' },          // autor de comentários e alterações
+    sidebar: true,                            // sumário, comentários e alterações
+    mergeFields: [{ key: 'unidade', label: 'Unidade' }],
+    mentions: [{ id: 'conselho', label: 'Conselho fiscal' }],
+    onChange: (html) => console.log(html),
   });
-  // Exportação explícita do fragmento HTML:
-  window.getDocumentoHTML = () => editor.getHTML();
-  // Reabertura do documento remoto:
-  window.reabrirDocumento = () => editor.load();
+
+  // Exemplos de uso
+  await editor.save();                         // HTML + comentários; guarda a versão anterior
+  editor.fillFields({ unidade: '302' });       // preenche os campos de mesclagem
+  const docx = await editor.exportDocx();      // Blob .docx com comentários e alterações
 </script>
 ```
 
-**Contrato de persistência:** `getHTML()` devolve **fragmento HTML sanitizado**. `setHTML(html)` carrega HTML salvo preservando as tags e estilos permitidos. `getDocumentHTML()` devolve uma página HTML completa com CSS básico embutido; use o fragmento no banco e o documento completo apenas para exportação. O endpoint PHP armazena o HTML como dado JSON, nunca o executa. Leia [Persistência HTML](docs/HTML-PERSISTENCIA.md).
+O que vem pronto:
+
+- **Texto:** títulos, fontes, tamanhos, cores, marca-texto, sublinhado, tachado, sub/sobrescrito, código, entrelinha, recuo, alinhamento, direção do texto (LTR/RTL), maiúsculas/minúsculas, pincel de formatação, limpar formatação.
+- **Estrutura:** listas com estilos e níveis, lista de tarefas, citação, seção recolhível, linha, quebra de página, âncoras, sumário com links.
+- **Tabelas:** inserir, linhas e colunas antes/depois, mesclar e dividir células em qualquer direção, cabeçalho de linha ou coluna, redimensionar colunas arrastando, cor de célula, bordas, espaçamento e alinhamento.
+- **Mídia:** imagem pelo Estúdio (arrastar, colar ou escolher), redimensionar arrastando a alça, alinhamento e texto ao redor, legenda, texto alternativo, reeditar no estúdio com duplo clique, imagem por URL, GIF animado, vídeo do YouTube/Vimeo.
+- **Atalhos de escrita:** `/` abre os comandos, `@` menciona pessoas, `:` busca emojis, `{{` insere campos; Markdown ao digitar (`# `, `- `, `1. `, `[ ] `, `> `, ```` ``` ````).
+- **Código e fórmulas:** blocos de código com realce de sintaxe para 30+ linguagens; fórmulas LaTeX desenhadas com KaTeX.
+- **Revisão:** comentários com respostas e resolução; controle de alterações (sugestões aceitas ou rejeitadas uma a uma ou todas); histórico de versões no servidor.
+- **Arquivos:** abrir DOCX, Markdown, HTML e TXT; exportar DOCX (com comentários e alterações nativos do Word), HTML, Markdown e TXT; imprimir/PDF; colar do Word e Google Docs mantendo listas e formatação.
+- **Ferramentas:** localizar e substituir com contador, maiúsculas/minúsculas, palavra inteira e expressão regular; modo HTML; prévia; tela cheia; somente leitura; modo página A4 ou contínuo; mostrar blocos e caracteres invisíveis; contagem de palavras.
+- **Integração:** API de HTML compatível com a versão 2, JSON e Markdown, eventos, botões próprios (`registerButton`) e extensões Tiptap extras (`extensions`).
 
 ## 2. Upload de imagem com perfil fixo
 
 ```html
 <div id="banner-upload"></div>
 <script type="module">
-  import { OrquestraImageUploader } from '/orquestra/src/image-studio.js';
-  const uploader = new OrquestraImageUploader({
+  import { OrquestraImageUploader } from '/orquestra/dist/orquestra-editor.js';
+
+  new OrquestraImageUploader({
     element: '#banner-upload',
-    width: 1200,
-    height: 630,
-    locked: true,              // usuário não altera dimensões nem proporção
-    requireAdjustment: true,   // obriga interagir com enquadramento
-    allowGIF: false,           // recorte animado não está implementado
-    allowUpscale: true,
-    format: 'image/webp',
-    lockFormat: true,
-    quality: 85,
-    profile: 'banner-site',    // servidor confere 1200 × 630 + WEBP
+    width: 1200, height: 630,
+    locked: true,              // o usuário não muda dimensões nem proporção
+    requireAdjustment: true,   // só confirma depois de enquadrar
+    format: 'image/webp', lockFormat: true, quality: 85,
+    profile: 'banner-site',    // o servidor confere 1200 × 630 em WEBP
     uploadUrl: '/orquestra/backend/upload.php',
-    onUpload: ({url,width,height,blob}) => console.log(url,width,height,blob)
+    onUpload: ({ url, width, height }) => console.log(url, width, height),
   });
 </script>
 ```
 
-O usuário vê a foto inteira com a parte externa ao recorte escurecida, uma **prévia real do resultado** em miniatura, ajustes de zoom, posicionamento, rotação, filtros e botão de aplicar. Com `requireAdjustment:true`, a confirmação só é habilitada após uma ação de edição; o usuário não pode alterar `width` nem `height` quando `locked:true`.
+O estúdio mostra a foto inteira com o excedente escurecido, a prévia real do resultado, zoom, arraste, giro, espelho horizontal e vertical, brilho, contraste, saturação e filtros. O enquadramento também funciona pelo teclado (setas, Shift, + e −).
 
-> **Importante:** bloquear dimensões no navegador não garante segurança. O parâmetro `profile` aciona a conferência no servidor de largura, altura e MIME. Configure os mesmos valores no PHP ou em `ORQUESTRA_IMAGE_PROFILES_JSON`.
+> Bloquear dimensões no navegador não basta. O parâmetro `profile` faz o servidor conferir largura, altura e formato. Configure os perfis no PHP ou em `ORQUESTRA_IMAGE_PROFILES_JSON`.
 
-## 3. Usar o estúdio diretamente
+## 3. Estúdio direto
 
 ```js
-import { ImageStudio } from './src/image-studio.js';
+import { ImageStudio } from '/orquestra/dist/orquestra-editor.js';
+
 const studio = new ImageStudio({ maxBytes: 15 * 1024 * 1024 });
-const result = await studio.open(fileSelecionado, {
-  width: 400, height: 400, locked: true, requireAdjustment: true,
-  format: 'image/webp', lockFormat: true, quality: 85
-});
-if(result) {
+const result = await studio.open(arquivo, { width: 400, height: 400, locked: true, format: 'image/webp' });
+if (result) {
   // result.blob, result.width, result.height, result.name, result.animated
-  const body = new FormData();
-  body.append('file', result.blob, result.name);
 }
 ```
 
-## Funcionalidades implementadas
+## Migração da versão 2
 
-Editor: menu Arquivo/Editar/Inserir/Tabela/Exibir/Ajuda; negrito, itálico, sublinhado, tachado, subscrito, sobrescrito, fontes, cores, tamanhos, entrelinha, alinhamentos, recuos, listas ordenadas/não ordenadas, estilo de listas, bloco de código, destaque, modelos de ofício/ata/comunicado/contrato, data e hora, caracteres especiais, emojis, inserção de GIF, upload/corte de imagem, links, tabelas, inserção/remoção de linhas/colunas, propriedades, mescla/split horizontal simples, âncoras, visualização, fonte HTML, busca/substituição, fullscreen, somente leitura, contador de palavras/caracteres, exportação HTML/TXT e impressão pelo navegador, autosave local e recuperação remota.
+A API pública é a mesma (`getHTML`, `setHTML`, `getDocumentHTML`, `save`, `load`, `onChange`, `onSave`, `destroy`). Mudanças:
 
-Imagens: upload arrastar/soltar, formato JPEG/PNG/WEBP, enquadramento cover, área descartada escurecida, preview, zoom, arrastar, girar, espelhar, contraste/brilho/saturação, filtros, formato e qualidade de saída, tamanho fixo/alterável por configuração. GIF animado preservado quando usado fora de perfil fixo, sem corte.
-
-**Não implementado:** coedição em tempo real, track changes, comentários colaborativos, importação DOCX fiel, exportação DOCX nativa, paginação automática de múltiplas folhas, editor semântico ProseMirror e tratamento de quadros de GIF. Para essas necessidades, veja o [Roadmap](docs/ROADMAP.md).
+- Importe de `dist/orquestra-editor.js` e carregue `dist/orquestra-editor.css` (antes `src/`).
+- HTML salvo pela v2 reabre normalmente: `<font>` vira `<span style>`, checklists antigos viram listas de tarefas e imagens soltas viram figuras.
+- `save()` agora envia também `comments` e o backend guarda versões anteriores.
 
 ## Documentação
 
-- [API de JavaScript e eventos](docs/API.md)
+- [API JavaScript, opções e eventos](docs/API.md)
 - [Configuração do uploader e perfis fixos](docs/CONFIGURACAO.md)
 - [Persistência e reabertura em HTML](docs/HTML-PERSISTENCIA.md)
 - [Segurança e hospedagem em produção](docs/SEGURANCA.md)
-- [Arquitetura e limitações técnicas](docs/ARQUITETURA.md)
+- [Arquitetura](docs/ARQUITETURA.md)
 - [Testes e integração contínua](docs/TESTES.md)
-- [Matriz funcional e cobertura](MATRIZ_FUNCIONAL.md)
-- [Evoluções planejadas](docs/ROADMAP.md)
-- [Referências da documentação oficial](docs/REFERENCIAS.md)
-- [Preparação de repositório GitHub privado](docs/GITHUB.md)
+- [Matriz de recursos comparada](MATRIZ_FUNCIONAL.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Componentes de terceiros e licenças](docs/TERCEIROS.md)
 
 ## Testes
 
 ```bash
+npm ci && npm run build
 pip install -r tests/requirements.txt
 python -m playwright install chromium
-php -S 127.0.0.1:8765 -t .  # terminal 1
-python tests/smoke.py         # terminal 2
+php -S 127.0.0.1:8765 -t .   # terminal 1
+python tests/smoke.py        # terminal 2
 ```
 
-Os testes cobrem persistência HTTP em PHP, validação do perfil no servidor, formatação HTML, sanitização, corte real em Canvas, arquivo animado, limites de configuração e interface móvel. Não representam auditoria de segurança ou compatibilidade total em todos os navegadores.
+Cobrem o backend PHP real (upload, perfis, versões), o roundtrip de HTML, o Estúdio com Canvas real, comentários, controle de alterações, busca com regex, campos de mesclagem, comandos `/`, mesclagem de células, Markdown, DOCX de ida e volta, KaTeX, sumário e a interface móvel.
 
-## Licença e publicação
+## Licença
 
-O projeto está em preparação para publicação. Consulte [LICENSE.md](LICENSE.md). **Não está liberado para redistribuição pública até definição de uma licença**. Referências a outros editores servem apenas para análise de funcionalidades; não usamos suas marcas como endosso.
+[MIT](LICENSE.md) — livre para usar, modificar e redistribuir, inclusive em produtos comerciais. Contribuições são bem-vindas: veja [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-**Coordenação do projeto**  
-Camargo Felis Guedes  
+**Coordenação do projeto**
+Camargo Felis Guedes
 CRC/ES 22.562/O

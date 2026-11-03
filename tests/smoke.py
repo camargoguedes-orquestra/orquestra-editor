@@ -1,6 +1,6 @@
-"""Testes executados em Chromium sobre about:blank (navegação local é bloqueada pelo sandbox).
-O Javascript é injetado como bundle temporário gerado em memória; os arquivos de entrega
-mantêm os módulos ES separados. Upload/save PHP testados com requests HTTP reais no loopback.
+"""Testes de ponta a ponta no Chromium contra o servidor PHP local (127.0.0.1:8765).
+Requer `npm run build` antes (a demonstração carrega dist/orquestra-editor.js).
+Upload/save PHP testados com requisições HTTP reais no loopback.
 """
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw
@@ -55,22 +55,23 @@ with urllib.request.urlopen(req) as r: assert json.load(r)['ok']
 with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123') as r:assert json.load(r)['html']=='<h1>Teste de persistência</h1>'
 print('OK PHP: salvar e recuperar documento')
 
-html=(root/'index.html').read_text().replace('<script type="module" src="./src/app.js"></script>','')
-styles=(root/'src/styles.css').read_text()
-styles+='\n'+re.search(r'<style>(.*?)</style>',html,flags=re.DOTALL).group(1)
-js='\n'.join((root/'src'/p).read_text() for p in ['image-studio.js','editor.js','app.js'])
-js=js.replace("import { ImageStudio } from './image-studio.js';",'')
-js=js.replace("import { OrquestraEditor } from './editor.js';",'')
-js=js.replace("import { OrquestraImageUploader } from './image-studio.js';",'')
-js=js.replace('export class ','class ').replace('export function ','function ')
+# Histórico de versões: um segundo salvamento guarda o anterior.
+payload=json.dumps({'id':'test-123','html':'<h1>Versão 2</h1>','comments':[{'id':'c-1','author':'Ana','text':'Ok','replies':[]}]}).encode()
+req=urllib.request.Request('http://127.0.0.1:8765/backend/save-document.php',data=payload,method='POST',headers={'Content-Type':'application/json'})
+with urllib.request.urlopen(req) as r: assert json.load(r)['ok']
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123&versions=1') as r: versions=json.load(r)['versions']
+assert len(versions)>=1,versions
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123&version='+versions[0]['version']) as r: assert json.load(r)['html']=='<h1>Teste de persistência</h1>'
+with urllib.request.urlopen('http://127.0.0.1:8765/backend/save-document.php?id=test-123') as r: cur=json.load(r)
+assert cur['html']=='<h1>Versão 2</h1>' and cur['comments'][0]['author']=='Ana'
+print('OK PHP: histórico de versões e comentários persistidos')
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(**({'executable_path':'/usr/bin/chromium'} if Path('/usr/bin/chromium').exists() else {}),headless=True,args=['--no-sandbox'])
+    browser=p.chromium.launch(**({'executable_path':'/usr/bin/google-chrome'} if Path('/usr/bin/google-chrome').exists() and not Path('/usr/bin/chromium').exists() else {'executable_path':'/usr/bin/chromium'} if Path('/usr/bin/chromium').exists() else {}),headless=True,args=['--no-sandbox'])
     page=browser.new_page(viewport={'width':1440,'height':980},accept_downloads=True)
     errs=[];page.on('pageerror',lambda error: errs.append(str(error)))
-    page.set_content(html)
-    page.add_style_tag(content=styles)
-    page.add_script_tag(content=js)
+    page.goto('http://127.0.0.1:8765/index.html')
+    page.wait_for_function('window.OrquestraDemo && window.OrquestraDemo.editor')
     assert page.locator('.oe-content h1').count()==1, errs
     print('OK interface',page.title())
     page.screenshot(path=str(root/'tests'/'editor-desktop.png'),full_page=True)
@@ -213,6 +214,135 @@ with sync_playwright() as p:
     assert page.evaluate('''()=>OrquestraDemo.editor.hasTemporaryImages()''')
     assert page.evaluate('''()=>OrquestraDemo.editor.save()''') is False
     print('OK rejeição de salvamento de imagens blob temporárias')
+
+    # ---------------- Versão 3 ----------------
+    E='OrquestraDemo.editor'
+    def select_text(text):
+        page.evaluate("""(t)=>{const e=OrquestraDemo.editor.tiptap;let from=null;e.state.doc.descendants((n,pos)=>{if(from!==null)return false;if(n.isText){const i=n.text.indexOf(t);if(i>=0)from=pos+i;}});e.chain().focus().setTextSelection({from,to:from+t.length}).run();}""",text)
+
+    # Bug corrigido da v2: cor, fonte e tamanho sobrevivem ao salvar.
+    page.evaluate(f"()=>{E}.setHTML('<p>texto colorido aqui</p>')")
+    select_text('colorido')
+    page.evaluate(f"()=>{{const t={E}.tiptap;t.chain().setColor('#ff0000').setFontFamily('Georgia, serif').setFontSize('24px').run()}}")
+    out=page.evaluate(f"()=>{E}.getHTML()")
+    assert 'color:#ff0000' in out.replace(' ','') or 'rgb(255,0,0)' in out.replace(' ',''), out
+    assert 'Georgia' in out and 'font-size:24px' in out.replace(' ',''), out
+    # HTML antigo com <font> também é convertido.
+    out=page.evaluate(f"""()=>{{{E}.setHTML('<p><font color="#00ff00" face="Verdana" size="5">legado</font></p>');return {E}.getHTML()}}""")
+    assert 'Verdana' in out and '24px' in out and 'legado' in out, out
+    print('OK cor, fonte e tamanho persistidos (inclusive <font> legado)')
+
+    # Checklist da versão 2 vira lista de tarefas.
+    out=page.evaluate(f"""()=>{{{E}.setHTML('<ul><li><input type="checkbox" checked> Feito</li><li><input type="checkbox"> Pendente</li></ul>');return {E}.getHTML()}}""")
+    assert 'data-type="taskList"' in out and out.count('data-checked="true"')==1, out
+    print('OK migração de checklist da v2')
+
+    # Comentários: cria, responde, resolve e persiste no save.
+    page.evaluate(f"()=>{E}.setHTML('<p>O orçamento da obra precisa de revisão.</p>')")
+    select_text('orçamento da obra')
+    cid=page.evaluate(f"()=>{E}.addComment('Conferir com o conselho')")
+    page.evaluate(f"(id)=>{E}.replyComment(id,'Ok, levo na reunião')",cid)
+    out=page.evaluate(f"()=>{E}.getHTML()")
+    assert f'data-comment-id="{cid}"' in out, out
+    page.evaluate(f"()=>{E}.toggleSidebar(true)")
+    page.evaluate(f"()=>{E}.showPanel('comments')")
+    assert page.locator('.oe-thread').count()==1 and 'Ok, levo' in page.locator('.oe-thread').inner_text()
+    page.locator('.oe-thread [data-c="resolve"]').click()
+    assert page.evaluate(f"()=>{E}.getComments()[0].resolved")
+    assert page.evaluate(f"async()=>await {E}.save()")
+    assert page.evaluate("()=>JSON.stringify(window.testStoredHTML)") and True
+    print('OK comentários: criar, responder, resolver')
+
+    # Controle de alterações: digitação vira inserção, exclusão vira riscado.
+    page.evaluate(f"()=>{E}.setHTML('<p>Valor da taxa: cem reais.</p>')")
+    page.evaluate(f"()=>{E}.setTrackChanges(true)")
+    select_text('cem')
+    page.keyboard.type('duzentos')
+    out=page.evaluate(f"()=>{E}.getHTML()")
+    assert '<del' in out and 'cem' in out and '<ins' in out and 'duzentos' in out, out
+    changes=page.evaluate(f"()=>{E}.getChanges()")
+    assert {c['type'] for c in changes}=={'insertion','deletion'}, changes
+    page.evaluate(f"()=>{E}.acceptAllChanges()")
+    out=page.evaluate(f"()=>{E}.getHTML()")
+    assert 'duzentos' in out and 'cem' not in out and '<del' not in out and '<ins' not in out, out
+    page.keyboard.press('Backspace')
+    out=page.evaluate(f"()=>{E}.getHTML()")
+    assert '<del' in out, out
+    page.evaluate(f"()=>{E}.rejectAllChanges()")
+    assert 'duzentos' in page.evaluate(f"()=>{E}.getText()")
+    page.evaluate(f"()=>{E}.setTrackChanges(false)")
+    print('OK controle de alterações: inserir, excluir, aceitar e rejeitar')
+
+    # Localizar e substituir com contagem e expressão regular.
+    page.evaluate(f"()=>{E}.setHTML('<p>Bloco A, bloco B e BLOCO C.</p>')")
+    page.keyboard.press('Control+f')
+    page.locator('.oe-find-input').fill('bloco')
+    assert page.locator('.oe-find-count').inner_text().endswith('/3')
+    page.locator('.oe-find-case').check()
+    assert page.locator('.oe-find-count').inner_text().endswith('/1')
+    page.locator('.oe-find-case').uncheck()
+    page.locator('.oe-find-regex').check()
+    page.locator('.oe-find-input').fill('bloco [ab]')
+    assert page.locator('.oe-find-count').inner_text().endswith('/2')
+    page.locator('.oe-replace-input').fill('Torre')
+    page.locator('.oe-replace-all').click()
+    assert page.evaluate(f"()=>{E}.getText()").strip()=='Torre, Torre e BLOCO C.'
+    page.locator('.oe-find-close').click()
+    print('OK localizar e substituir (maiúsculas, regex, substituir todas)')
+
+    # Campos de mesclagem.
+    page.evaluate(f"()=>{E}.setHTML('<p>Prezado(a) </p>')")
+    page.evaluate(f"()=>{{const t={E}.tiptap;t.chain().focus('end').insertMergeField('nome_condomino','Nome do condômino').insertContent(', unidade ').insertMergeField('unidade','Unidade').run()}}")
+    assert 'data-merge-field="unidade"' in page.evaluate(f"()=>{E}.getHTML()")
+    page.evaluate(f"()=>{E}.fillFields({{nome_condomino:'Ana Souza',unidade:'302'}})")
+    text=page.evaluate(f"()=>{E}.getText()")
+    assert 'Ana Souza, unidade 302' in text and '{{' not in text, text
+    print('OK campos de mesclagem')
+
+    # Comandos com "/" e tabela com mesclagem de células.
+    page.evaluate(f"()=>{E}.setHTML('<p></p>')")
+    page.locator('.oe-prose').click()
+    page.keyboard.type('/tabe')
+    page.locator('.oe-suggest-item').first.wait_for()
+    page.keyboard.press('Enter')
+    page.locator('.oe-dialog button[type="submit"]').click()
+    assert page.locator('.oe-prose table').count()==1
+    page.evaluate(f"()=>{{const t={E}.tiptap;let a=null,b=null;t.state.doc.descendants((n,p)=>{{if(n.type.name==='tableCell'){{if(a===null)a=p;else if(b===null)b=p;}}}});t.chain().setCellSelection({{anchorCell:a,headCell:b}}).mergeCells().run()}}")
+    assert 'colspan="2"' in page.evaluate(f"()=>{E}.getHTML()")
+    print('OK comando /tabela e mesclagem de células')
+
+    # Markdown de ida e volta.
+    page.evaluate(f"()=>{E}.setMarkdown('# Título\\n\\n- um\\n- **dois**\\n')")
+    html=page.evaluate(f"()=>{E}.getHTML()")
+    assert '<h1' in html and '<strong>dois</strong>' in html, html
+    assert '**dois**' in page.evaluate(f"()=>{E}.getMarkdown()")
+    print('OK Markdown importar e exportar')
+
+    # DOCX: exporta e reimporta (mammoth lê o arquivo produzido pela biblioteca docx).
+    page.evaluate(f"()=>{E}.setHTML('<h2>Relatório</h2><p><strong>Negrito</strong> e <em>itálico</em>.</p><ul><li><p>Item</p></li></ul><table><tbody><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></tbody></table>')")
+    size=page.evaluate(f"""async()=>{{const blob=await {E}.exportDocx();window.lastDocx=blob;return blob?blob.size:0}}""")
+    assert size>3000, size
+    html=page.evaluate(f"""async()=>{{const f=new File([window.lastDocx],'r.docx');await {E}.importFile(f);return {E}.getHTML()}}""")
+    assert 'Relatório' in html and '<strong>Negrito</strong>' in html and '<table' in html and 'Item' in html, html
+    print('OK DOCX exportar e importar',size,'bytes')
+
+    # Fórmula (KaTeX) e sumário.
+    page.evaluate(f"()=>{E}.setHTML('<h1>Capítulo</h1><h2>Seção</h2><p>Texto</p>')")
+    page.evaluate(f"()=>{{const t={E}.tiptap;t.chain().focus('end').insertInlineMath({{latex:'a^2+b^2=c^2'}}).run()}}")
+    assert page.locator('.oe-prose .katex').count()>=1
+    page.evaluate(f"()=>{{{E}.tiptap.commands.focus('end');{E}.insertTableOfContents()}}")
+    html=page.evaluate(f"()=>{E}.getHTML()")
+    assert 'href="#secao-capitulo' in html and 'data-latex="a^2+b^2=c^2"' in html, html
+    print('OK fórmula KaTeX e sumário com links')
+
+    # Bug corrigido da v2: estúdio com allowUpscale:false fecha sem travar.
+    res=page.evaluate("""async()=>{const {ImageStudio}=await import('/dist/orquestra-editor.js');const st=new ImageStudio();
+      const c=document.createElement('canvas');c.width=50;c.height=50;const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+      const pr=st.open(new File([blob],'a.png',{type:'image/png'}),{width:40,height:40,locked:true,allowUpscale:false});
+      await new Promise(r=>setTimeout(r,300));document.querySelector('.oi-cancel').click();
+      return Promise.race([pr.then(x=>'resolveu:'+x),new Promise(r=>setTimeout(()=>r('travou'),1500))]);}""")
+    assert res=='resolveu:null', res
+    print('OK estúdio fecha corretamente com allowUpscale:false')
 
     page.evaluate('''()=>OrquestraDemo.editor.setHTML('<h2 style=\"color:#155e9e\">Orquestra Editor</h2><p>Documento de exemplo com <strong>formatação</strong> e <em>ênfase</em>.</p><p>Visualização responsiva no celular.</p>')''')
     page.set_viewport_size({'width':390,'height':844})

@@ -1,14 +1,15 @@
-# Relatório de testes — Orquestra Editor 2.0
+# Relatório de testes — Orquestra Editor 3.0
 
-Data: 2026-11-02 (execução no ambiente de desenvolvimento).
+Data: 2026-11-03. Chrome (Playwright) contra `php -S 127.0.0.1:8765` servindo a demonstração com o pacote `dist/`.
 
-Resultado: **todos os cenários automatizados executados passaram** no Chromium disponível e no PHP local.
+Resultado: **todos os cenários passaram** (`ALL TESTS PASSED`).
 
-Cobertura: formatação, emojis, tabela, sanitização HTML no navegador, upload PNG/GIF, geração WEBP 400×400, perfil fixo WEBP 1200×630, bloqueio de tamanho/formato, interação obrigatória, recusa de GIF em perfil fixo, preservação de GIF sem recorte, HTML roundtrip e reabertura via API simulada, persistência PHP real e validação de perfil no servidor, prevenção de `blob:` persistido, interface móvel.
+Cobertura:
 
-### Restrições
+- Backend PHP real: upload PNG/GIF, perfis fixos (rejeita e aceita), salvar/recuperar, histórico de versões, comentários persistidos.
+- Editor: negrito pela barra, emoji, tabela, sanitização contra script/eventos/`javascript:`, salvar, roundtrip de HTML com estilos, checklist com estado, bloqueio de imagens `blob:`.
+- Estúdio: recorte 400×400 WEBP com upload, perfil fixo 1200×630 travado, GIF recusado no perfil fixo e preservado no modo livre, fechamento sem travar com `allowUpscale:false`.
+- Versão 3: cor/fonte/tamanho persistidos e `<font>` legado convertido, migração de checklist da v2, comentários (criar, responder, resolver, salvar), controle de alterações (digitar, apagar, aceitar, rejeitar), localizar/substituir com maiúsculas e regex, campos de mesclagem, comando `/tabela`, mesclagem de células, Markdown de ida e volta, DOCX exportado e reimportado, fórmula KaTeX e sumário com links.
+- Interface móvel (390 px).
 
-- O navegador foi testado com injeção dos módulos em `about:blank`; endpoints PHP foram testados com HTTP no loopback.
-- O fluxo de reabertura na UI usa mock do HTTP, além do teste separado de persistência HTTP real do PHP.
-- Não houve auditoria completa de segurança, teste de compatibilidade multi-browser, validação real em Locaweb ou CI remoto no GitHub.
-- `contenteditable` e `execCommand` continuam no motor; para edição empresarial estruturada, recomenda-se migrar para ProseMirror/Tiptap após testes de schema.
+Restrições: testado só no Chromium; sem auditoria de segurança completa; o controle de alterações não rastreia formatação nem quebras de parágrafo.

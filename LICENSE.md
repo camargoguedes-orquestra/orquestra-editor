@@ -1,7 +1,27 @@
-# Licença / situação de distribuição
+MIT License
 
-Copyright © 2026 Camargo Felis Guedes. Todos os direitos reservados.
+Copyright (c) 2026 Camargo Felis Guedes e colaboradores do Orquestra Editor
 
-Este código foi preparado para manutenção em repositório privado. Nenhuma licença de redistribuição pública, sublicenciamento, modificação ou utilização comercial por terceiros é concedida neste momento.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Antes de tornar o repositório público, o titular deverá escolher expressamente uma licença de código aberto (ex.: MIT ou Apache-2.0) ou comercial, revisar dependências e direitos de autoria e substituir este arquivo.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Componentes de terceiros incluídos em `dist/` mantêm suas próprias licenças
+(todas permissivas: MIT, ISC, BSD e Zlib). Veja `docs/TERCEIROS.md` e os
+arquivos `dist/*.LEGAL.txt`.
