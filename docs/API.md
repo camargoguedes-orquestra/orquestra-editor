@@ -20,6 +20,12 @@ const e = new OrquestraEditor('#editor', {
   saveUrl: '/backend/save-document.php',
   uploadUrl: '/backend/upload.php',
   token: '',
+  headers: () => ({ 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }),
+  credentials: 'same-origin',     // envia o cookie de sessão do próprio domínio
+  name: 'conteudo',               // campo oculto com o HTML, enviado com o <form> da página
+  header: true,                   // false esconde o cabeçalho "Salvar documento"
+  menubar: true,                  // false esconde os menus Arquivo/Editar/…
+  statusbar: true,                // false esconde a barra de status
   image: { width: 1200, height: 800, locked: false, format: 'image/webp', profile: null },
   user: { name: 'Ana' },          // autor de comentários e alterações
   sidebar: false,                 // abre o painel lateral ao iniciar
@@ -92,6 +98,33 @@ const e = new OrquestraEditor('#editor', {
 
 `/` comandos · `@` menções · `:` emojis · `{{` campos · `Ctrl+S` salvar · `Ctrl+K` link · `Ctrl+F` localizar · `Ctrl+H` substituir · `Ctrl+Alt+M` comentar · `Ctrl+Enter` quebra de página · `Ctrl+P` imprimir · `Tab`/`Shift+Tab` recuo em listas. A lista completa está em **Ajuda → Atalhos de teclado**.
 
+### Requisições ao backend
+
+Todas as chamadas do editor (`save`, `load`, histórico de versões e upload de imagens) passam pelo mesmo ponto e recebem:
+
+- `headers`: objeto fixo ou função (pode ser `async`) chamada **a cada requisição**. Use função quando o token muda durante a sessão.
+- `token`: compatibilidade com a v2; vira o cabeçalho `X-Upload-Token`.
+- `credentials`: repassado ao `fetch` (`same-origin` por padrão; `include` para backend em outro domínio com CORS).
+
+Os cabeçalhos de `headers` têm prioridade sobre os do editor, então também servem para trocar `Content-Type` ou `X-Upload-Token`.
+
+### Dentro de um formulário
+
+```html
+<form method="post" action="/comunicados">
+  <input name="titulo">
+  <div id="texto"></div>
+  <button>Publicar</button>
+</form>
+<script type="module">
+  new OrquestraEditor('#texto', { name: 'conteudo', header: false, autosave: false });
+</script>
+```
+
+- `name` cria `<input type="hidden" name="conteudo">` logo depois do editor (ou reaproveita um campo com esse nome que já esteja no formulário) e o mantém com o HTML atual, inclusive no instante do envio.
+- Botões do editor nunca enviam o formulário; Enter nos campos de busca e nos seletores também não. Os diálogos do editor (link, tabela…) usam formulários próprios que não propagam o envio.
+- Comentários não vão no campo oculto: se usar revisão dentro de um formulário, envie `editor.getComments()` em outro campo.
+
 ### `onChange` e `onSave`
 
 `onChange` é chamado após 150 ms sem alterações. `onSave` só dispara depois de salvar com sucesso. `initialHTML` tem prioridade sobre o rascunho local. IDs de documento seguem a validação do backend (`A-Z`, `a-z`, `0-9`, ponto, `_`, hífen; até 90 caracteres).
@@ -124,10 +157,14 @@ Métodos:
 const uploader = new OrquestraImageUploader({
   element:'#foto', width:400,height:400,locked:true,
   format:'image/webp', profile:'avatar', uploadUrl:'/backend/upload.php',
+  headers: { 'X-CSRF-Token': csrf },   // objeto ou função, como no editor
+  credentials: 'same-origin',
+  name: 'foto_url',                    // campo oculto com a URL enviada (para <form>)
   onUpload({url,localUrl,blob,name,width,height,animated}) { /* sucesso no upload ou modo local */ },
   onError(error) { console.error(error); }
 });
 await uploader.process(file);  // abre modal e faz upload após confirmação
+uploader.getValue();           // URL da última imagem enviada
 uploader.destroy();
 ```
 

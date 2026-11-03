@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Exemplo: o sistema hospedeiro publica o token CSRF numa meta tag. -->
+  <meta name="csrf-token" content="token-csrf-de-exemplo">
+  <title>Orquestra — editor e uploader dentro de um formulário</title>
+  <link rel="stylesheet" href="../dist/orquestra-editor.css">
+  <!-- Repare: nenhum estilo de página aqui. O CSS do Orquestra não mexe em body, * nem em botões da página. -->
+</head>
+<body>
+  <h1>Novo comunicado</h1>
+  <form id="comunicado" method="post" action="#">
+    <p><label>Título <input name="titulo" value="Manutenção dos elevadores"></label></p>
+    <div id="capa"></div>
+    <div id="texto"></div>
+    <p><button type="submit">Publicar comunicado</button> <button type="button" id="cancelar">Cancelar</button></p>
+  </form>
+  <pre id="enviado" aria-live="polite"></pre>
+
+  <script type="module">
+    import { OrquestraEditor, OrquestraImageUploader } from '../dist/orquestra-editor.js';
+
+    // Lido a cada requisição: se o sistema renovar o token, o editor usa o novo.
+    const csrf = () => ({ 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content });
+
+    const uploader = new OrquestraImageUploader({
+      element: '#capa',
+      name: 'imagem_capa',         // campo oculto com a URL da imagem enviada
+      width: 1200, height: 630, locked: true, format: 'image/webp',
+      profile: 'banner-site',
+      uploadUrl: '../backend/upload.php',
+      headers: csrf,
+    });
+
+    const editor = new OrquestraEditor('#texto', {
+      id: 'comunicado-novo',
+      name: 'conteudo',            // campo oculto com o HTML, enviado junto com o formulário
+      header: false,               // sem "Salvar documento": quem salva é o formulário
+      statusbar: true,
+      autosave: false,
+      pageMode: false,
+      height: 420,
+      uploadUrl: '../backend/upload.php',
+      headers: csrf,
+      initialHTML: '<p>Informamos que os elevadores passarão por manutenção preventiva.</p>',
+    });
+
+    document.querySelector('#comunicado').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const dados = Object.fromEntries(new FormData(e.target));
+      document.querySelector('#enviado').textContent = JSON.stringify(dados, null, 2);
+    });
+
+    window.exemplo = { editor, uploader };
+  </script>
+</body>
+</html>

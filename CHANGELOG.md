@@ -1,5 +1,15 @@
 # Histórico de alterações
 
+## 3.1.0 — 2026-11-03
+
+Ajustes para instalar o editor e o uploader dentro de outros sistemas.
+
+- CSS restrito aos componentes: as regras de `body`, `*`, `button` e `[hidden]` não afetam mais a página hospedeira. As regras base usam `:where()` (especificidade zero). Quem dependia do fundo e da fonte que o editor aplicava ao `body` precisa definir esses estilos na própria página.
+- Opção `headers` no editor e no uploader: objeto ou função chamada a cada requisição (ex.: token CSRF lido de uma meta tag). Opção `credentials` (padrão `same-origin`). O `token` continua funcionando.
+- Opções `header: false`, `menubar: false` e `statusbar: false` para esconder partes da interface.
+- Uso dentro de `<form>`: opção `name` cria um campo oculto com o HTML (editor) ou a URL da imagem (uploader), atualizado também no momento do envio; botões internos não enviam o formulário; Enter em campos internos e os formulários dos diálogos não disparam o envio do formulário da página.
+- Novo exemplo `examples/formulario.html`.
+
 ## 3.0.0 — 2026-11-03
 
 Versão livre (licença MIT), com motor novo e recursos que outros editores reservam para a versão paga.

@@ -2,7 +2,7 @@
 
 Data: 2026-11-03. Chrome (Playwright) contra `php -S 127.0.0.1:8765` servindo a demonstração com o pacote `dist/`.
 
-Resultado: **todos os cenários passaram** (`ALL TESTS PASSED`).
+Resultado: **todos os cenários passaram** (`ALL TESTS PASSED`), incluindo os de integração da 3.1 (CSS restrito, `header:false`, cabeçalho CSRF em salvar e upload, editor e uploader dentro de `<form>`).
 
 Cobertura:
 

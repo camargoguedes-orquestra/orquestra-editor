@@ -37,6 +37,7 @@ import katex from 'katex';
 
 import { ImageStudio } from './image-studio.js';
 import { ESC, cleanOfficeHTML, sanitizeHTML, secureMedia, secureURL } from './core/sanitize.js';
+import { buildRequest, createFormField, shieldFromOuterForm } from './core/integration.js';
 import { Anchor, BlockStyle, MergeField, PageBreak, StudioImage, VideoEmbed } from './extensions/document-nodes.js';
 import { Comment, Deletion, Insertion, SearchReplace, TrackChanges, listChanges } from './extensions/review.js';
 import { loadEmojis, EmojiSuggest, MergeFieldSuggest, SlashCommands, mentionSuggestion } from './extensions/suggestions.js';
@@ -49,7 +50,7 @@ import {
 
 export { sanitizeHTML };
 
-export const VERSION = '3.0.0';
+export const VERSION = '3.1.0';
 
 const uid = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 const slug = (text) => 'secao-' + (String(text || '')
@@ -182,6 +183,12 @@ export class OrquestraEditor {
       uploadUrl: null,
       saveUrl: null,
       token: '',
+      headers: null,          // cabeçalhos extras: objeto ou função (ex.: token CSRF)
+      credentials: 'same-origin',
+      name: null,             // nome do campo oculto enviado com o <form> da página
+      header: true,           // cabeçalho com "Salvar documento"
+      menubar: true,
+      statusbar: true,
       height: 680,
       image: { width: 1200, height: 800, locked: false, requireAdjustment: false, format: 'image/webp' },
       user: { name: 'Usuário' },
@@ -214,6 +221,8 @@ export class OrquestraEditor {
     this.render();
     this.createEditor();
     this.bind();
+    this.unshield = shieldFromOuterForm(this.host);
+    this.formField = createFormField(this.host, this.options.name, () => this.getHTML());
 
     const cached = this.options.autosave ? this.retrieveDraft() : null;
     const seed = this.options.initialHTML ?? cached?.html ?? `<h1>Bem-vindo ao Orquestra Editor</h1><p>Um editor livre para documentos, comunicados, atas e contratos, com recursos profissionais.</p><p>Digite <strong>/</strong> para ver os comandos, <strong>@</strong> para mencionar, <strong>:</strong> para emojis ou abra o <strong>Estúdio de imagens</strong> para recortar uma fotografia.</p><blockquote><p>Componente reutilizável e gratuito, com upload, imagens, tabelas, comentários, controle de alterações e exportação para Word.</p></blockquote>`;
@@ -229,7 +238,7 @@ export class OrquestraEditor {
     this.host.classList.add('oe-root');
     const toolbar = this.options.toolbar || TOOLBAR;
     this.host.innerHTML = `
-      <header class="oe-header">
+      <header class="oe-header" ${this.options.header === false ? 'hidden' : ''}>
         <div class="oe-brand"><span class="oe-brand-mark">O</span><div><b>Orquestra Editor</b><small>Editor livre de documentos</small></div></div>
         <div class="oe-header-actions">
           <span class="oe-save-indicator">● Rascunho local</span>
@@ -238,7 +247,7 @@ export class OrquestraEditor {
           <button class="oe-top-btn oe-top-primary oe-action" data-action="save">Salvar documento</button>
         </div>
       </header>
-      <nav class="oe-menubar" aria-label="Menu do editor">${Object.keys(MENUS).map((name) => `<button type="button" class="oe-menu-button" data-menu="${ESC(name)}" aria-haspopup="true">${ESC(name)}</button>`).join('')}</nav>
+      <nav class="oe-menubar" aria-label="Menu do editor" ${this.options.menubar === false ? 'hidden' : ''}>${Object.keys(MENUS).map((name) => `<button type="button" class="oe-menu-button" data-menu="${ESC(name)}" aria-haspopup="true">${ESC(name)}</button>`).join('')}</nav>
       <div class="oe-toolbar" role="toolbar" aria-label="Ferramentas de formatação">${toolbar.map((group) => `<div class="oe-toolbar-group" role="group">${group.map((id) => this.toolHTML(id)).join('')}</div>`).join('')}</div>
       <div class="oe-secondary">
         <div><span class="oe-online-dot"></span> Editor pronto <span class="oe-divider-dot">·</span> <span class="oe-page-label">Documento A4</span><span class="oe-track-label" hidden> <span class="oe-divider-dot">·</span> <b>Controle de alterações ligado</b></span></div>
@@ -279,7 +288,7 @@ export class OrquestraEditor {
           <div class="oe-side-panel" data-panel="changes" hidden></div>
         </aside>
       </div>
-      <footer class="oe-statusbar"><span class="oe-doc-stats">0 palavras · 0 caracteres</span><span class="oe-status-message" role="status">Pronto</span><span>Orquestra Editor v${VERSION}</span></footer>
+      <footer class="oe-statusbar" ${this.options.statusbar === false ? 'hidden' : ''}><span class="oe-doc-stats">0 palavras · 0 caracteres</span><span class="oe-status-message" role="status">Pronto</span><span>Orquestra Editor v${VERSION}</span></footer>
       <div class="oe-layer" hidden></div>
       <input type="file" class="oe-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
       <input type="file" class="oe-open-file" accept=".docx,.md,.markdown,.html,.htm,.txt" hidden>
@@ -690,6 +699,7 @@ export class OrquestraEditor {
     if (this.sourceMode) this.code.value = this.getHTML();
     if (trigger) this.changed();
     else {
+      this.formField?.sync();
       this.stats();
       this.renderSidebar();
     }
@@ -736,6 +746,7 @@ export class OrquestraEditor {
   }
 
   changed() {
+    this.formField?.sync();
     this.stats();
     this.status('Alterações pendentes');
     this.renderSidebarSoon();
@@ -772,8 +783,9 @@ export class OrquestraEditor {
     }
   }
 
-  authHeaders(extra = {}) {
-    return { ...extra, ...(this.options.token ? { 'X-Upload-Token': this.options.token } : {}) };
+  /** fetch com os cabeçalhos do sistema (token, CSRF…) e cookies da sessão. */
+  async request(url, init = {}) {
+    return fetch(url, await buildRequest(this.options, init));
   }
 
   async save() {
@@ -784,9 +796,9 @@ export class OrquestraEditor {
     }
     if (this.options.saveUrl) {
       try {
-        const response = await fetch(this.options.saveUrl, {
+        const response = await this.request(this.options.saveUrl, {
           method: 'POST',
-          headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: this.options.id, html, comments: this.comments }),
         });
         const json = await response.json();
@@ -819,7 +831,7 @@ export class OrquestraEditor {
       const url = new URL(this.options.saveUrl, location.href);
       url.searchParams.set('id', this.options.id);
       if (version) url.searchParams.set('version', version);
-      const resp = await fetch(url.toString(), { headers: this.authHeaders() });
+      const resp = await this.request(url.toString());
       const data = await resp.json();
       if (!resp.ok || typeof data.html !== 'string') throw Error(data.error || 'Documento não encontrado');
       this.comments = Array.isArray(data.comments) ? data.comments : [];
@@ -1272,7 +1284,7 @@ export class OrquestraEditor {
       const url = new URL(this.options.saveUrl, location.href);
       url.searchParams.set('id', this.options.id);
       url.searchParams.set('versions', '1');
-      const r = await fetch(url.toString(), { headers: this.authHeaders() });
+      const r = await this.request(url.toString());
       const data = await r.json();
       if (!r.ok) throw Error(data.error || 'Falha ao listar versões');
       list = data.versions || [];
@@ -1293,7 +1305,7 @@ export class OrquestraEditor {
     const form = new FormData();
     form.append('file', blob, name);
     if (this.options.image?.profile) form.append('profile', this.options.image.profile);
-    const response = await fetch(this.options.uploadUrl, { method: 'POST', headers: this.authHeaders(), body: form });
+    const response = await this.request(this.options.uploadUrl, { method: 'POST', body: form });
     const json = await response.json();
     if (!response.ok || !json.url) throw Error(json.error || 'Falha no upload');
     return json.url;
@@ -1830,6 +1842,8 @@ export class OrquestraEditor {
     document.removeEventListener('pointerdown', this.onOutside);
     document.removeEventListener('keydown', this.onEscape);
     this.localURLs.forEach((u) => URL.revokeObjectURL(u));
+    this.unshield?.();
+    this.formField?.destroy();
     this.tiptap.destroy();
     this.host.replaceChildren();
     this.host.classList.remove('oe-root');
