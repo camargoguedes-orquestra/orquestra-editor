@@ -76,6 +76,21 @@ O que vem pronto:
 - **Ferramentas:** localizar e substituir com contador, maiúsculas/minúsculas, palavra inteira e expressão regular; modo HTML; prévia; tela cheia; somente leitura; modo página A4 ou contínuo; mostrar blocos e caracteres invisíveis; contagem de palavras.
 - **Integração:** API de HTML compatível com a versão 2, JSON e Markdown, eventos, botões próprios (`registerButton`) e extensões Tiptap extras (`extensions`).
 
+### Dentro de outro sistema
+
+O CSS só afeta os próprios componentes (nada em `body`, `*` ou nos botões da página). Para usar dentro de um formulário, com o token CSRF do seu sistema:
+
+```js
+new OrquestraEditor('#texto', {
+  name: 'conteudo',     // campo oculto com o HTML, enviado junto com o <form>
+  header: false,        // esconde "Salvar documento"; quem salva é o formulário
+  headers: () => ({ 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content }),
+  uploadUrl: '/upload',
+});
+```
+
+Exemplo completo em [examples/formulario.html](examples/formulario.html). Também há `menubar: false` e `statusbar: false`.
+
 ## 2. Upload de imagem com perfil fixo
 
 ```html

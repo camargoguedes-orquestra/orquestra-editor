@@ -1,3 +1,5 @@
+import { buildRequest, createFormField, shieldFromOuterForm } from './core/integration.js';
+
 /** Orquestra Image Studio — independente, sem dependências externas.
  * Fluxo: new ImageStudio().open(file?, {width,height,aspectRatio}) -> Promise<{blob,width,height,name,animated}>.
  * GIF animado é preservado sem rasterização, porque Canvas eliminaria os quadros.
@@ -305,12 +307,12 @@ export class ImageStudio {
 
 /** Componente independente: upload e recorte, com prévia do resultado. */
 export class OrquestraImageUploader {
-  constructor({ element, uploadUrl = null, token = '', onUpload = null, onError = null, width = 1200, height = 800,
+  constructor({ element, uploadUrl = null, token = '', headers = null, credentials = 'same-origin', name = null, onUpload = null, onError = null, width = 1200, height = 800,
     locked = true, requireAdjustment = false, allowGIF = false, allowUpscale = true, lockFormat = true, lockQuality = false,
     format = 'image/webp', quality = 85, profile = '', title = 'Upload e tratamento de imagens' } = {}) {
     this.el = typeof element === 'string' ? document.querySelector(element) : element;
     if (!this.el) throw Error('Elemento do uploader não encontrado.');
-    this.uploadUrl = uploadUrl; this.token = token; this.onUpload = onUpload; this.onError = onError;
+    this.uploadUrl = uploadUrl; this.token = token; this.headers = headers; this.credentials = credentials; this.onUpload = onUpload; this.onError = onError;
     this.width = width; this.height = height; this.locked = locked; this.requireAdjustment = requireAdjustment;
     this.allowGIF = locked ? false : allowGIF; this.allowUpscale = allowUpscale; this.lockFormat = lockFormat; this.lockQuality = lockQuality; this.format = format; this.quality = quality; this.profile = profile;
     this.studio = new ImageStudio();
@@ -332,6 +334,9 @@ export class OrquestraImageUploader {
     zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('is-dragover'); if (e.dataTransfer.files[0]) this.process(e.dataTransfer.files[0]); });
     this.fileInput.addEventListener('change', () => { if (this.fileInput.files[0]) this.process(this.fileInput.files[0]); this.fileInput.value = ''; });
     this.el.querySelector('.oi-up-preset').addEventListener('change', e => { if (e.target.value === 'custom') return; const [w,h] = e.target.value.split('x'); this.el.querySelector('.oi-up-w').value = w; this.el.querySelector('.oi-up-h').value = h; });
+    this.value = '';
+    this.unshield = shieldFromOuterForm(this.el);
+    this.formField = createFormField(this.el, name, () => this.getValue());
   }
   escape(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   async process(file) {
@@ -346,8 +351,8 @@ export class OrquestraImageUploader {
     if (this.uploadUrl) {
       try {
         const form = new FormData(); form.append('file', result.blob, result.name); if(this.profile)form.append('profile',this.profile);
-        const headers = this.token ? {'X-Upload-Token':this.token} : {};
-        const response = await fetch(this.uploadUrl, {method:'POST', headers, body:form});
+        const init = await buildRequest({ headers: this.headers, token: this.token, credentials: this.credentials }, { method: 'POST', body: form });
+        const response = await fetch(this.uploadUrl, init);
         const data = await response.json();
         if (!response.ok || !data.url) throw Error(data.error || 'Erro ao enviar imagem');
         url = data.url;
@@ -363,8 +368,12 @@ export class OrquestraImageUploader {
     this.el.querySelector('.oi-up-meta').textContent = `${result.width} × ${result.height} pixels · ${this.studio.bytes(result.blob.size)}${result.animated ? ' · GIF animado preservado' : ''}`;
     const link = this.el.querySelector('.oi-up-url'); link.hidden = !url;
     if(url) link.href = url;
+    this.value = url;
+    this.formField?.sync();
     if(!this.uploadUrl || url) this.onUpload?.({ ...result, url, localUrl });
     return { ...result, url, localUrl };
   }
-  destroy() { if(this.localURL) URL.revokeObjectURL(this.localURL); this.el.replaceChildren(); }
+  /** URL da última imagem enviada (também gravada no campo oculto `name`, se configurado). */
+  getValue() { return this.value || ''; }
+  destroy() { if(this.localURL) URL.revokeObjectURL(this.localURL); this.unshield?.(); this.formField?.destroy(); this.el.replaceChildren(); }
 }

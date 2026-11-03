@@ -348,6 +348,51 @@ with sync_playwright() as p:
     assert res=='resolveu:null', res
     print('OK estúdio fecha corretamente com allowUpscale:false')
 
+    # ---------------- Integração com outros sistemas ----------------
+    form_page=browser.new_page(viewport={'width':1280,'height':900})
+    form_errs=[];form_page.on('pageerror',lambda error: form_errs.append(str(error)))
+    form_page.goto('http://127.0.0.1:8765/examples/formulario.html')
+    form_page.wait_for_function('window.exemplo && window.exemplo.editor')
+    # CSS não altera a página hospedeira (página sem estilos próprios).
+    style=form_page.evaluate("""()=>{const b=getComputedStyle(document.body);const btn=getComputedStyle(document.querySelector('#cancelar'));
+      return {margin:b.margin,bg:b.backgroundColor,font:b.fontFamily,boxSizing:getComputedStyle(document.querySelector('h1')).boxSizing,cursor:btn.cursor}}""")
+    assert style['margin']=='8px' and style['bg']=='rgba(0, 0, 0, 0)' and 'Inter' not in style['font'] and style['boxSizing']=='content-box' and style['cursor']=='default', style
+    print('OK CSS restrito aos componentes (body, *, botões da página intactos)')
+    # Cabeçalho escondido.
+    assert form_page.locator('#texto .oe-header').is_hidden()
+    assert form_page.locator('#texto .oe-toolbar').is_visible()
+    print('OK opção header:false')
+    # Cabeçalhos próprios (CSRF lido a cada requisição) no editor e no uploader.
+    form_page.evaluate("""()=>{window.sent=[];const orig=window.fetch;window.fetch=async(url,init={})=>{window.sent.push({url:String(url),headers:init.headers,credentials:init.credentials});
+      return new Response(JSON.stringify({ok:true,url:'/backend/uploads/x.webp',html:'<p>x</p>',versions:[]}),{status:201,headers:{'content-type':'application/json'}})};}""")
+    form_page.evaluate("()=>{exemplo.editor.options.saveUrl='/backend/save-document.php';document.querySelector('meta[name=csrf-token]').content='renovado-123'}")
+    assert form_page.evaluate("async()=>await exemplo.editor.save()")
+    sent=form_page.evaluate("()=>window.sent[0]")
+    assert sent['headers'].get('X-CSRF-Token')=='renovado-123' and sent['headers'].get('Content-Type')=='application/json' and sent['credentials']=='same-origin', sent
+    form_page.locator('#capa .oi-up-file').set_input_files(str(fixed))
+    form_page.locator('.oi-studio').wait_for()
+    form_page.locator('.oi-zoom').fill('120');form_page.locator('.oi-zoom').dispatch_event('input')
+    form_page.locator('.oi-apply').click()
+    form_page.wait_for_function("window.sent.length===2")
+    assert form_page.evaluate("()=>window.sent[1].headers['X-CSRF-Token']")=='renovado-123'
+    print('OK cabeçalhos próprios (CSRF) em salvar e upload')
+    # Dentro do <form>: botões e diálogos não enviam o formulário; o envio leva HTML e URL da imagem.
+    form_page.locator('#texto .oe-tool[data-action="bold"]').click()
+    form_page.locator('#texto .oe-tool[data-action="table"]').click()
+    form_page.locator('#texto .oe-dialog button[type="submit"]').click()
+    form_page.keyboard.press('Control+f')
+    form_page.locator('#texto .oe-replace-input').fill('x')
+    form_page.locator('#texto .oe-replace-input').press('Enter')
+    assert form_page.locator('#enviado').inner_text()=='', 'formulário enviado por engano'
+    assert form_page.locator('#texto .oe-prose table').count()==1
+    form_page.locator('button[type=submit]', has_text='Publicar').click()
+    data=json.loads(form_page.locator('#enviado').inner_text())
+    assert data['titulo']=='Manutenção dos elevadores' and '<table' in data['conteudo'] and 'elevadores' in data['conteudo'], data
+    assert data['imagem_capa']=='/backend/uploads/x.webp', data
+    print('OK editor e uploader dentro de <form>: campos name, sem envios acidentais')
+    assert not form_errs, form_errs
+    form_page.close()
+
     page.evaluate('''()=>OrquestraDemo.editor.setHTML('<h2 style=\"color:#155e9e\">Orquestra Editor</h2><p>Documento de exemplo com <strong>formatação</strong> e <em>ênfase</em>.</p><p>Visualização responsiva no celular.</p>')''')
     page.set_viewport_size({'width':390,'height':844})
     page.locator('#tab-editor').click()
