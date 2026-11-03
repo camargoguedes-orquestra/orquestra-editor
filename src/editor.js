@@ -6,6 +6,8 @@
  * exportação DOCX/Markdown, tabelas completas, código com realce, fórmulas, menções,
  * campos de mesclagem, sumário, comandos com "/", busca com expressão regular e o
  * Estúdio de imagens com recorte obrigatório.
+ *
+ * Autor: Camargo Guedes <camargoguedes@gmail.com> — licença MIT.
  */
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -913,7 +915,7 @@ export class OrquestraEditor {
       case 'img-delete': chain().deleteSelection().run(); break;
       case 'table-cell-color': this.colorPicker('cellColor', origin); break;
       case 'help': this.helpDialog(); break;
-      case 'about': this.messageDialog('Orquestra Editor', `<p>Editor WYSIWYG livre e gratuito (licença MIT), versão ${VERSION}, construído sobre Tiptap/ProseMirror.</p><p>Inclui Estúdio de imagens com recorte obrigatório, tabelas completas, comentários, controle de alterações, histórico de versões e exportação para Word.</p>`); break;
+      case 'about': this.messageDialog('Orquestra Editor', `<p>Editor WYSIWYG livre e gratuito (licença MIT), versão ${VERSION}, construído sobre Tiptap/ProseMirror.</p><p>Inclui Estúdio de imagens com recorte obrigatório, tabelas completas, comentários, controle de alterações, histórico de versões e exportação para Word.</p><p>Criado por <strong>Camargo Guedes</strong> — <a href="mailto:camargoguedes@gmail.com">camargoguedes@gmail.com</a>.</p>`); break;
       default: break;
     }
     this.syncToolbar();

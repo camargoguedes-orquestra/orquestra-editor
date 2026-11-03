@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 const root = join(dirname(new URL(import.meta.url).pathname), '..');
 const dist = join(root, 'dist');
 rmSync(dist, { recursive: true, force: true });
@@ -22,6 +23,7 @@ const result = await build({
   minify: true,
   sourcemap: Boolean(process.env.SOURCEMAP),
   legalComments: 'linked',
+  banner: { js: `/*! Orquestra Editor ${pkg.version} | MIT | ${pkg.author} */` },
   logLevel: 'info',
   metafile: true,
 });

@@ -1,6 +1,6 @@
 # Como contribuir
 
-O Orquestra Editor é software livre (licença MIT) e aceita contribuições da comunidade.
+O Orquestra Editor é software livre (licença MIT), criado por Camargo Guedes (camargoguedes@gmail.com), e aceita contribuições da comunidade.
 
 1. Abra uma issue descrevendo o problema ou a ideia, com passos para reproduzir quando for um defeito.
 2. Crie um branch a partir de `main` (`feat/...` ou `fix/...`).
