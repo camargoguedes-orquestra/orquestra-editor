@@ -82,6 +82,25 @@ final class TemporaryDownloadBroker {
       @unlink($meta);@unlink($file);throw $e;
     } finally {fclose($src);fclose($dst);}
   }
+  /**
+   * Dados para preparar cabeçalhos HTTP ANTES do stream. Revalida actor, grant e SHA.
+   * Nao expose path original nem path da copia.
+   */
+  public function describeTicket(string $ticket,string $actor):array {
+    $meta=$this->path($ticket,'.json');$file=$this->path($ticket,'.bin');
+    if(!is_file($meta)||!is_file($file)||is_link($meta)||is_link($file))
+      throw new RuntimeException('Ticket nao localizado');
+    $d=json_decode((string)file_get_contents($meta),true);
+    if(!is_array($d)||!hash_equals((string)($d['actor']??''),$actor)||
+       (int)($d['expires']??0)<=time())
+      throw new RuntimeException('Ticket expirado ou nao autorizado');
+    $g=$this->grant((string)($d['grant']??''),$actor);
+    if(!hash_equals(strtolower($g['sha256']),(string)($d['sha']??'')) ||
+       !hash_equals(strtolower($g['sha256']),(string)hash_file('sha256',$file)))
+      throw new RuntimeException('Integridade comprometida');
+    return ['originalName'=>self::safeName((string)($g['original_name']??'documento')),
+       'bytes'=>(int)$d['bytes'],'sha256'=>(string)$d['sha'],'grantId'=>(string)$d['grant']];
+  }
   /** Copia somente apos revalidar a concessao, titular e SHA-256. */
   public function downloadTo(string $ticket,string $actor,mixed $output):array {
     if (!is_resource($output)) throw new RuntimeException('Stream de saida invalido');
