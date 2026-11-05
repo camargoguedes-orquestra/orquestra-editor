@@ -5,7 +5,7 @@
 <style>body{font:16px system-ui;margin:2rem auto;max-width:850px;padding:0 1rem}button{padding:.6rem}#viewer{margin-top:1rem}</style>
 </head><body>
 <h1>FileViewer independente — demonstração local</h1>
-<p>Este exemplo usa um arquivo de texto temporário em memória; não representa acesso autorizado do servidor.</p>
+<p>Este exemplo usa um arquivo de texto estático para testar o visualizador; em produção, o arquivo deve ser servido por uma rota autorizada.</p>
 <button id="abrir">Abrir arquivo de exemplo</button><div id="viewer"></div>
 <script type="module">
 import {OrquestraFileViewer} from '../packages/file-viewer/src/index.mjs';

@@ -36,7 +36,11 @@ export class OrquestraFileViewer {
   constructor({element:target,resolve,fetchImpl=globalThis.fetch,allowDownload=false,onEvent=()=>{},maxTextBytes=2097152}) {
     this.root=typeof target==='string'?document.querySelector(target):target;
     if (!this.root || typeof resolve!=='function') throw new Error('element e resolve(fileId,operation) obrigatorios');
-    this.resolve=resolve; this.fetchImpl=fetchImpl; this.allowDownload=!!allowDownload;
+    this.resolve=resolve;
+    // Window.fetch exige o this original em navegadores (Illegal invocation se desvinculado).
+    this.fetchImpl=(fetchImpl===globalThis.fetch && typeof globalThis.fetch==='function')
+      ? globalThis.fetch.bind(globalThis) : fetchImpl;
+    this.allowDownload=!!allowDownload;
     this.onEvent=onEvent;this.maxTextBytes=maxTextBytes;this.render();
   }
   render() {
