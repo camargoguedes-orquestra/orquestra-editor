@@ -32,6 +32,8 @@ jobs:
           php -d assert.exception=1 packages/document-ocr/tests/text.php
           php packages/document-search/tests/search-sqlite.php
           php packages/document-requests/tests/portal-sqlite.php
+          php packages/http-api/tests/api-sqlite.php
+          php packages/secure-share/tests/download-service-sqlite.php
       - name: Confirm docs and model schemas
         run: |
           test -s docs/DECISOES_E_REQUISITOS.md
