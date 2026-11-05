@@ -1,0 +1,1 @@
+{"name":"orquestra/http-api","description":"Controller headless de documentos, integravel ao framework HTTP do host","type":"library","license":"MIT","require":{"php":">=8.2"},"autoload":{"psr-4":{"Orquestra\\HttpApi\\":"src/"}}}
