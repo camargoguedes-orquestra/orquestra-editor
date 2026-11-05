@@ -1,0 +1,11 @@
+/* Isolado por prefixo para nao afetar a aplicacao hospedeira. */
+.orq-file-viewer{--orq-accent:#266c83;--orq-border:#d6e0e5;--orq-bg:#f6f9fb;font:inherit;color:inherit;border:1px solid var(--orq-border);border-radius:12px;overflow:hidden}
+.orq-file-viewer .orq-viewer-toolbar{padding:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--orq-border);background:var(--orq-bg)}
+.orq-file-viewer .orq-viewer-title{flex:1;min-width:140px;word-break:break-word}
+.orq-file-viewer .orq-viewer-download{border:1px solid var(--orq-accent);border-radius:8px;background:white;color:var(--orq-accent);padding:8px 12px;cursor:pointer}
+.orq-file-viewer .orq-viewer-content{min-height:260px;max-height:78vh;overflow:auto;padding:12px;background:var(--orq-bg);text-align:center}
+.orq-file-viewer .orq-viewer-image{display:block;max-width:100%;max-height:70vh;margin:auto;object-fit:contain}
+.orq-file-viewer .orq-viewer-frame{display:block;border:0;width:100%;min-height:65vh;background:white}
+.orq-file-viewer .orq-viewer-media{display:block;max-width:100%;margin:auto}
+.orq-file-viewer .orq-viewer-text{white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;font:13px/1.6 ui-monospace,monospace}
+.orq-file-viewer .orq-viewer-error{color:#a42828}

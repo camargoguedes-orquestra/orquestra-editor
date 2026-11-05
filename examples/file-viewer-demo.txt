@@ -1,0 +1,4 @@
+Orquestra Components
+Componente FileViewer independente.
+Esta é uma prévia local de texto.
+Em produção, use sempre uma rota autenticada do backend para visualizar arquivos privados.
