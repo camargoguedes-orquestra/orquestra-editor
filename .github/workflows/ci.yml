@@ -35,3 +35,4 @@ jobs:
           php -S 127.0.0.1:8765 -t . > /tmp/orquestra-php.log 2>&1 &
           sleep 2
           python tests/smoke.py
+          python tests/components_browser.py

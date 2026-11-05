@@ -20,7 +20,7 @@ jobs:
         run: |
           node --check packages/file-uploader/src/index.mjs
           node --check packages/file-viewer/src/index.mjs
-          node --test packages/file-uploader/tests/policy.test.mjs packages/file-viewer/tests/format.test.mjs
+          node --test packages/file-uploader/tests/policy.test.mjs packages/file-viewer/tests/format.test.mjs packages/file-manager/tests/index.test.mjs
       - name: PHP lint
         run: |
           find packages -type f -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -29,6 +29,7 @@ jobs:
           php -d assert.exception=1 packages/document-core/tests/integration.php
           php -d assert.exception=1 packages/document-core/tests/catalog-sqlite.php
           php -d assert.exception=1 packages/secure-share/tests/smoke.php
+          php -d assert.exception=1 packages/document-ocr/tests/text.php
       - name: Confirm docs and model schemas
         run: |
           test -s docs/DECISOES_E_REQUISITOS.md
@@ -36,3 +37,29 @@ jobs:
           test -s packages/document-core/migrations/mysql.sql
           test -s packages/document-core/migrations/postgresql.sql
           test -s packages/document-core/migrations/sqlserver.sql
+
+  language-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Python syntax
+        run: python -m py_compile examples/python/client.py
+      - name: Java 21 compilation
+        run: javac examples/java/OrquestraClient.java
+      - name: C# .NET 8 compilation
+        run: dotnet build examples/csharp/OrquestraDemo.csproj -c Release
+      - name: TypeScript strict typecheck
+        run: npx --yes --package typescript@5 -- tsc --noEmit --strict --target ES2022 --module ES2022 --lib ES2022,DOM examples/typescript/upload.ts
