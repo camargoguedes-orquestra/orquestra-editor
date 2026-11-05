@@ -1,0 +1,21 @@
+name: Independent components (development)
+on:
+  push:
+    branches: [feature/modular-components-secure-file-sharing]
+  pull_request:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax and tests
+        run: |
+          node --check packages/file-uploader/src/index.mjs
+          node --test packages/file-uploader/tests/policy.test.mjs
+      - name: PHP syntax and staging tests
+        run: |
+          php -l packages/secure-share/src/TemporaryDownloadBroker.php
+          php -d zend.assertions=1 -d assert.exception=1 packages/secure-share/tests/smoke.php

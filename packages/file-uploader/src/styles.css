@@ -1,0 +1,8 @@
+.orq-file-uploader {font:14px/1.5 system-ui,sans-serif;color:#24354b}
+.orq-file-uploader .orq-drop {border:2px dashed #9cb7cf;border-radius:12px;background:#f6f9ff;padding:28px;text-align:center;cursor:pointer}
+.orq-file-uploader .orq-drop:focus-visible {outline:3px solid #3976c3;outline-offset:2px}
+.orq-file-uploader .orq-file {display:grid;grid-template-columns:minmax(120px,2fr) 1fr auto auto auto;gap:8px;align-items:center;border-bottom:1px solid #dbe5ef;padding:9px 0}
+.orq-file-uploader .orq-file span:first-child {overflow-wrap:anywhere}
+.orq-file-uploader progress {width:100%;accent-color:#316ec1}
+.orq-file-uploader button {cursor:pointer}
+@media(max-width:600px){.orq-file-uploader .orq-file{grid-template-columns:1fr auto}.orq-file-uploader .orq-file progress{grid-column:1/-1;grid-row:2}}
