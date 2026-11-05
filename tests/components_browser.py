@@ -6,10 +6,17 @@ with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page(viewport={"width": 1200, "height": 800})
     errors = []
-    page.on("pageerror", lambda err: errors.append(str(err)))
+    page.on("pageerror", lambda err: errors.append("pageerror: " + str(err)))
+    page.on("console", lambda msg: errors.append("console: " + msg.text) if msg.type == "error" else None)
+    page.on("response", lambda response: errors.append("HTTP " + str(response.status) + " " + response.url) if response.status >= 400 else None)
     page.goto(BASE + "/examples/file-viewer-demo.html")
     page.locator("#abrir").click()
-    page.locator(".orq-viewer-text").wait_for(timeout=10000)
+    try:
+        page.locator(".orq-viewer-text").wait_for(timeout=10000)
+    except Exception:
+        print("VIEWER DOM:", page.locator("#viewer").inner_html()[:3000])
+        print("VIEWER ERRORS:", errors)
+        raise
     assert "Componente FileViewer independente." in page.locator(".orq-viewer-text").inner_text()
     page.goto(BASE + "/examples/javascript/upload.html")
     page.locator(".orq-file-uploader").wait_for(timeout=10000)
