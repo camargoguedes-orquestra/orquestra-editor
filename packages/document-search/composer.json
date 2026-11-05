@@ -1,0 +1,1 @@
+{"name":"orquestra/document-search","description":"Busca SQL independente com ACL por documento","type":"library","license":"MIT","require":{"php":">=8.2"},"autoload":{"psr-4":{"Orquestra\\DocumentSearch\\":"src/"}}}
