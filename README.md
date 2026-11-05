@@ -168,3 +168,9 @@ Cobrem o backend PHP real (upload, perfis, versões), o roundtrip de HTML, o Est
 **Autor e coordenação do projeto**
 Camargo Guedes — [camargoguedes@gmail.com](mailto:camargoguedes@gmail.com)
 CRC/ES 22.562/O
+
+## Orquestra Components (em desenvolvimento)
+
+A biblioteca principal OrquestraEditor 3.1.0 permanece preservada. Os novos componentes independentes estão em desenvolvimento na branch `feature/modular-components-secure-file-sharing`. Consulte [decisões](docs/DECISOES_E_REQUISITOS.md), [estado real](docs/STATUS_DESENVOLVIMENTO.md) e [modelo de segurança](docs/SECURITY_MODEL.md). **Não publicar pacotes estáveis nem integrar este código em produção antes da homologação integral.**
+
+Os componentes em `packages/` são opcionais; nenhuma aplicação precisa instalar todos.

@@ -1,0 +1,14 @@
+{
+  "name": "orquestra/document-rules",
+  "description": "Modulo independente Orquestra: document-rules",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Orquestra\\DocumentRules\\": "src/"
+    }
+  }
+}

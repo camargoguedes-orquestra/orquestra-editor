@@ -7,7 +7,8 @@ use RuntimeException;
 final class RulesEngine {
     /** @return array categorias, tags, extracoes e relatorio de regras que coincidiram */
     public function classify(array $document,array $rules):array {
-        $text=mb_strtolower(mb_substr((string)($document['text']??''),0,1000000),'UTF-8');
+        $raw=(string)($document['text']??'');
+        $text=function_exists('mb_strtolower') ? mb_strtolower(mb_substr($raw,0,1000000),'UTF-8') : strtolower(substr($raw,0,1000000));
         $extension=strtolower((string)($document['extension']??''));
         $result=['category'=>null,'tags'=>[],'extract'=>[],'matchedRules'=>[],'reviewRequired'=>false];
         usort($rules,static fn($a,$b)=>(int)($a['priority']??100)<=>(int)($b['priority']??100));
@@ -20,7 +21,7 @@ final class RulesEngine {
             $terms=$cond['textContainsAny']??[];
             if ($terms!==[]) {
                 $matched=false;
-                foreach($terms as $term) if ($term!=='' && mb_strpos($text,mb_strtolower((string)$term,'UTF-8'))!==false) {$matched=true;break;}
+                foreach($terms as $term) if ($term!=='' && strpos($text,(function_exists('mb_strtolower') ? mb_strtolower((string)$term,'UTF-8') : strtolower((string)$term)))!==false) {$matched=true;break;}
                 if (!$matched) continue;
             }
             $result['matchedRules'][]=$id;

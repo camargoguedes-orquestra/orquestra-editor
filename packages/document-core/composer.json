@@ -1,0 +1,14 @@
+{
+  "name": "orquestra/document-core",
+  "description": "Modulo independente Orquestra: document-core",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Orquestra\\DocumentCore\\": "src/"
+    }
+  }
+}

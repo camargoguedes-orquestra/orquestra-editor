@@ -1,0 +1,10 @@
+{
+  "name": "@orquestra/file-uploader",
+  "version": "0.1.0-dev.1",
+  "private": true,
+  "type": "module",
+  "description": "FileUploader independente - versao de desenvolvimento",
+  "exports": {".": "./src/index.mjs", "./styles.css": "./src/styles.css"},
+  "files": ["src", "README.md"],
+  "engines": {"node": ">=18"}
+}

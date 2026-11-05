@@ -1,0 +1,14 @@
+{
+  "name": "orquestra/secure-share",
+  "description": "Modulo independente Orquestra: secure-share",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Orquestra\\SecureShare\\": "src/"
+    }
+  }
+}

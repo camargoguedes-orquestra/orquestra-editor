@@ -32,11 +32,12 @@ final class PdoDocumentCatalog {
     }
     public function listDocuments(string $tenant,int $limit=50,int $offset=0):array {
         $limit=max(1,min(200,$limit));$offset=max(0,$offset);
-        $s=$this->pdo->prepare('SELECT id,display_name,description,status,created_at,updated_at FROM orq_documents WHERE tenant_id=? AND status=? ORDER BY created_at DESC,id DESC LIMIT '.$limit.' OFFSET '.$offset);
-        // SQL Server requer OFFSET/FETCH, portanto este metodo usa um adaptador de paginação quando driver=sqlsrv.
-        if($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlsrv') {
-            $s=$this->pdo->prepare('SELECT id,display_name,description,status,created_at,updated_at FROM orq_documents WHERE tenant_id=? AND status=? ORDER BY created_at DESC,id DESC OFFSET '.$offset.' ROWS FETCH NEXT '.$limit.' ROWS ONLY');
-        }
+        // SQL Server nao suporta LIMIT; construir a SQL correta ANTES de preparar.
+        $order='SELECT id,display_name,description,status,created_at,updated_at FROM orq_documents WHERE tenant_id=? AND status=? ORDER BY created_at DESC,id DESC ';
+        $page=$this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlsrv'
+            ? 'OFFSET '.$offset.' ROWS FETCH NEXT '.$limit.' ROWS ONLY'
+            : 'LIMIT '.$limit.' OFFSET '.$offset;
+        $s=$this->pdo->prepare($order.$page);
         $s->execute([$tenant,'active']);
         return $s->fetchAll(PDO::FETCH_ASSOC);
     }

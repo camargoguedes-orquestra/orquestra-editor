@@ -1,0 +1,14 @@
+{
+  "name": "orquestra/document-requests",
+  "description": "Modulo independente Orquestra: document-requests",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Orquestra\\DocumentRequests\\": "src/"
+    }
+  }
+}

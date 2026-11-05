@@ -1,0 +1,38 @@
+name: Orquestra Document Components - integration
+on:
+  push:
+    branches: [feature/modular-components-secure-file-sharing]
+  pull_request:
+jobs:
+  component-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, fileinfo
+          coverage: none
+      - name: Validate JavaScript
+        run: |
+          node --check packages/file-uploader/src/index.mjs
+          node --check packages/file-viewer/src/index.mjs
+          node --test packages/file-uploader/tests/policy.test.mjs packages/file-viewer/tests/format.test.mjs
+      - name: PHP lint
+        run: |
+          find packages -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: PHP core integration
+        run: |
+          php -d assert.exception=1 packages/document-core/tests/integration.php
+          php -d assert.exception=1 packages/document-core/tests/catalog-sqlite.php
+          php -d assert.exception=1 packages/secure-share/tests/smoke.php
+      - name: Confirm docs and model schemas
+        run: |
+          test -s docs/DECISOES_E_REQUISITOS.md
+          test -s docs/SECURITY_MODEL.md
+          test -s packages/document-core/migrations/mysql.sql
+          test -s packages/document-core/migrations/postgresql.sql
+          test -s packages/document-core/migrations/sqlserver.sql
