@@ -1,0 +1,1 @@
+{"name":"orquestra/document-ocr","description":"Extratores locais opcionais","type":"library","license":"MIT","require":{"php":">=8.2"},"autoload":{"psr-4":{"Orquestra\\DocumentOCR\\":"src/"}}}
