@@ -1,0 +1,8 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OrquestraImageUploader — independente</title>
+<link rel="stylesheet" href="../packages/image-uploader/src/styles.css"></head>
+<body style="font-family:system-ui;margin:2rem"><h1>ImageUploader sem Editor</h1><p>Demonstrativo local. Não grava imagem no servidor.</p><div id="imagens"></div>
+<script type="module">
+import {OrquestraImageUploader} from '../packages/image-uploader/src/index.mjs';
+new OrquestraImageUploader({element:'#imagens',width:1200,height:630,locked:false,allowGIF:true,onUpload:console.log});
+</script></body></html>

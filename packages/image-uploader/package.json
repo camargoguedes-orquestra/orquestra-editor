@@ -1,0 +1,10 @@
+{
+  "name": "@orquestra/image-uploader",
+  "version": "0.1.0-dev.1",
+  "private": true,
+  "type": "module",
+  "description": "ImageUploader independente baseado no estúdio 3.1.0",
+  "exports": {".": "./src/index.mjs", "./styles.css": "./src/styles.css"},
+  "files": ["src","README.md"],
+  "engines": {"node": ">=18"}
+}
