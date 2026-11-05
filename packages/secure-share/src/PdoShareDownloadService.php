@@ -27,11 +27,14 @@ final class PdoShareDownloadService {
                     'JOIN orq_versions v ON v.id=d.current_version_id '.
                     'WHERE s.id=?');
                 $q->execute([$shareId]);$g=$q->fetch(PDO::FETCH_ASSOC);
-                return $g?:null;
+                if(!$g)return null;
+                // Broker exige timestamp Unix; colunas PDO retornam DATETIME em string.
+                $g['expires_at'] = strtotime($g['expires_at'].' UTC');
+                return $g;
             },
             function(array $g,string $actor):bool {
                 if($actor===''||$g['revoked_at']!==null||$g['document_status']!=='active'||
-                   strtotime($g['expires_at'].' UTC')<=time())return false;
+                   (int)$g['expires_at']<=time())return false;
                 $perms=json_decode($g['permissions_json'],true);
                 if(!is_array($perms)||!in_array('download',$perms,true))return false;
                 return (bool)($this->verifyRecipient)($g,$actor)
