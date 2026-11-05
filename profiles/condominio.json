@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "name": "documentos-condominio",
+  "version": "1.0.0",
+  "components": [
+    "file-uploader",
+    "file-viewer",
+    "document-requests",
+    "secure-share"
+  ],
+  "upload": {
+    "extensions": {
+      "pdf": 20971520,
+      "jpg": 5242880,
+      "png": 5242880
+    },
+    "maxFiles": 20,
+    "maxTotalBytes": 104857600
+  },
+  "processing": {
+    "ocr": true,
+    "ai": false,
+    "classification": true,
+    "reviewExceptions": true
+  },
+  "metadata": {
+    "fields": [
+      {
+        "name": "unidade",
+        "type": "association",
+        "label": "Unidade"
+      },
+      {
+        "name": "morador",
+        "type": "association",
+        "label": "Morador"
+      }
+    ]
+  }
+}

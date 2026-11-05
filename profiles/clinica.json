@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "name": "documentos-clinica",
+  "version": "1.0.0",
+  "components": [
+    "file-uploader",
+    "file-viewer",
+    "document-requests"
+  ],
+  "upload": {
+    "extensions": {
+      "pdf": 20971520,
+      "jpg": 5242880
+    },
+    "maxFiles": 10,
+    "maxTotalBytes": 52428800
+  },
+  "processing": {
+    "ocr": true,
+    "ai": false,
+    "classification": true,
+    "reviewExceptions": true
+  },
+  "security": {
+    "avoidPublicLinks": true
+  }
+}
