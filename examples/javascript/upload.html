@@ -1,0 +1,16 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FileUploader HTML/JS</title>
+<link rel="stylesheet" href="../../packages/file-uploader/src/styles.css">
+<style>body{font:16px system-ui;margin:3rem auto;max-width:850px;padding:0 1rem}</style>
+</head><body><h1>FileUploader independente</h1>
+<p>Para enviar arquivos de verdade, implemente POST /api/documents/upload no servidor, com autenticação e validação.</p>
+<div id="anexos"></div><pre id="eventos"></pre>
+<script type="module">
+import {OrquestraFileUploader} from '../../packages/file-uploader/src/index.mjs';
+new OrquestraFileUploader({
+ element:'#anexos',uploadUrl:'/api/documents/upload',
+ profile:{id:'contratos',extensions:{pdf:20971520,txt:2097152,jpg:5242880},maxFiles:10,maxTotalBytes:52428800},
+ concurrentUploads:2,autoUpload:false,
+ headers:()=>({'X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||''}),
+ onEvent:e=>{document.querySelector('#eventos').textContent=JSON.stringify(e,null,2);}
+});
+</script></body></html>
